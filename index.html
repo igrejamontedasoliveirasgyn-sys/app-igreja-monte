@@ -254,47 +254,66 @@
       overflow-x: auto;
     }
 
-    /* ===== IMPRESSÃO ===== */
-    @media print {
-      body * { visibility: hidden !important; }
-      .relatorio-container, .relatorio-container *,
-      .doc-container, .doc-container * {
-        visibility: visible !important;
-      }
-      .relatorio-container, .doc-container {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        border: none !important;
-        margin: 0 !important;
-        padding: 20px !important;
-        box-shadow: none !important;
-        background: white !important;
-        z-index: 9999;
-        font-family: 'Times New Roman', Times, serif !important;
-      }
-      .relatorio-container table,
-      .doc-container table {
-        display: table !important;
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin: 5px 0 !important;
-      }
-      .relatorio-container tr, .relatorio-container td, .relatorio-container th,
-      .doc-container tr, .doc-container td, .doc-container th {
-        display: table-cell !important;
-        border: 1px solid #000 !important;
-        padding: 6px !important;
-      }
-      .relatorio-container .total-row { background: #e9ecef !important; }
-      .relatorio-container .saldo-row { background: #d4edda !important; }
-      .btn-imprimir, .nav-principal, header, .area .salvar,
-      .area select, .area input, .area label, .filtros-relatorio,
-      .grid-secretaria, .card-sec {
-        display: none !important;
-      }
-    }
+/* ===== IMPRESSÃO ===== */
+@media print {
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #relatorioContainer,
+  #relatorioContainer * {
+    visibility: visible !important;
+  }
+
+  #relatorioContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  #relatorioContainer table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed;
+  }
+
+  #relatorioContainer th,
+  #relatorioContainer td {
+    border: 1px solid #000 !important;
+    padding: 6px !important;
+    word-break: break-word;
+  }
+
+  #relatorioContainer tr {
+    page-break-inside: avoid;
+  }
+
+  .btn-imprimir {
+    display: none !important;
+  }
+
+}
   </style>
 </head>
 <body>
