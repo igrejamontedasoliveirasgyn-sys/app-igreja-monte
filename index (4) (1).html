@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Igreja Pentecostal Monte das Oliveiras - Sistema</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="icon" href="icon.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+      padding: 25px 20px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+    header p { margin: 3px 0; font-size: 1rem; }
+
+    .nav-principal {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      background: #1e293b;
+      padding: 12px;
+      flex-wrap: wrap;
+    }
+    .nav-principal button {
+      background: transparent;
+      border: 2px solid #fff;
+      color: #fff;
+      padding: 10px 25px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .nav-principal button:hover,
+    .nav-principal button.ativo {
+      background: #fff;
+      color: #1e293b;
+    }
+
+    .secao {
+      display: none;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .secao.ativa { display: block; }
+
+    .grid-dash {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .card-dash {
+      border-radius: 20px;
+      padding: 25px 15px;
+      color: white;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .card-dash h2 { font-size: 1.3rem; margin-bottom: 8px; }
+    .card-dash .valor { font-size: 2rem; font-weight: bold; margin-top: 10px; }
+    .cor-caixa   { background: linear-gradient(135deg, #00b894, #00cec9); }
+    .cor-banco   { background: linear-gradient(135deg, #0984e3, #74b9ff); }
+    .cor-receita { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+    .cor-despesa { background: linear-gradient(135deg, #d63031, #ff7675); }
+    .cor-total   { background: linear-gradient(135deg, #f39c12, #f1c40f); }
+    .cor-menu    { background: linear-gradient(135deg, #2d3436, #636e72); }
+
+    .btn-dash {
+      background: white;
+      color: #2d3436;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 15px;
+    }
+    .btn-dash:hover { transform: scale(1.05); }
+
+    .area {
+      background: white;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .area h3 { margin-bottom: 15px; color: #0f172a; }
+    .area input, .area select {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+      background: #fff;
+    }
+    .area label {
+      font-weight: bold;
+      display: none;
+      margin-bottom: 4px;
+    }
+    .area .labelSelect { display: none; }
+    .salvar {
+      background: #00b894;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.3s;
+      width: 100%;
+      font-weight: bold;
+    }
+    .salvar:hover { background: #00997a; }
+
+    .item-historico {
+      background: #f8fafc;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    .item-historico b { color: #0f172a; }
+    .item-historico button {
+      background: #0f172a;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 8px;
+      font-size: 14px;
+    }
+    .item-historico button:hover { opacity: 0.8; }
+    .btn-excluir { background: #d63031; }
+
+    .relatorio-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      margin-top: 15px;
+      overflow-x: auto;
+      font-family: 'Times New Roman', Times, serif;
+    }
+    .relatorio-container table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .relatorio-container th,
+    .relatorio-container td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    .relatorio-container th { background: #f1f5f9; font-weight: bold; }
+    .relatorio-container .total-row { font-weight: bold; background: #e9ecef; }
+    .relatorio-container .saldo-row { background: #d4edda; }
+    .btn-imprimir {
+      background: #0984e3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    .btn-imprimir:hover { background: #0652DD; }
+    .filtros-relatorio {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .filtros-relatorio > div {
+      flex: 1;
+      min-width: 200px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+    }
+    .filtros-relatorio label { display: block; margin-top: 8px; font-weight: bold; }
+    .filtros-relatorio input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+    }
+    .filtros-relatorio button { margin-top: 12px; }
+
+    .grid-secretaria {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .card-sec {
+      border-radius: 15px;
+      padding: 25px;
+      color: white;
+      text-align: center;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      transition: 0.3s;
+    }
+    .card-sec:hover { transform: scale(1.05); }
+    .cor-membros    { background: linear-gradient(135deg, #00b894, #00cec9); }
+    .cor-documentos { background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+    .cor-lideranca  { background: linear-gradient(135deg, #d63031, #ff7675); }
+    .cor-relatorios { background: linear-gradient(135deg, #0984e3, #74b9ff); }
+
+    .item-sec {
+      background: #f8fafc;
+      padding: 10px;
+      margin-top: 10px;
+      border-left: 5px solid #10b981;
+      border-radius: 8px;
+    }
+    .doc-container {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+
+    /* CORREÇÃO DEFINITIVA PARA IMPRESSÃO */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      
+      #relatorioParaImprimir, 
+      #relatorioParaImprimir * {
+        visibility: visible !important;
+      }
+      
+      #relatorioParaImprimir {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        padding: 20px !important;
+        background: white !important;
+        font-family: "Times New Roman", Times, serif !important;
+      }
+      
+      .btn-imprimir, .filtros-relatorio {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h1>
+  <p>Rua 52 QD 71 Lote 5 – Condomínio das Esmeraldas</p>
+  <p>Goiânia - Goiás – CNPJ: 00237230/0001-79</p>
+</header>
+
+<nav class="nav-principal">
+  <button class="ativo" onclick="navegarPara('dashboard')">📊 Dashboard</button>
+  <button onclick="navegarPara('tesouraria')">💰 Tesouraria</button>
+  <button onclick="navegarPara('secretaria')">📋 Secretaria</button>
+</nav>
+
+<section id="dashboard" class="secao ativa">
+  <div class="grid-dash">
+    <div class="card-dash cor-caixa">
+      <h2>Saldo Caixa</h2>
+      <div class="valor" id="saldoCaixa">R$ 0,00</div>
+    </div>
+    <div class="card-dash cor-banco">
+      <h2>Saldo Banco</h2>
+      <div class="valor" id="saldoBanco">R$ 0,00</div>
+    </div>
+    <div class="card-dash cor-receita">
+      <h2>Receitas</h2>
+      <div class="valor" id="totalReceitas">R$ 0,00</div>
+    </div>
+    <div class="card-dash cor-despesa">
+      <h2>Despesas</h2>
+      <div class="valor" id="totalDespesas">R$ 0,00</div>
+    </div>
+    <div class="card-dash cor-total">
+      <h2>Saldo Total</h2>
+      <div class="valor" id="saldoTotal">R$ 0,00</div>
+    </div>
+    <div class="card-dash cor-menu">
+      <h2>Tesouraria</h2>
+      <button class="btn-dash" onclick="navegarPara('tesouraria')">Abrir Tesouraria</button>
+    </div>
+    <div class="card-dash cor-menu">
+      <h2>Secretaria</h2>
+      <button class="btn-dash" onclick="navegarPara('secretaria')">Abrir Secretaria</button>
+    </div>
+  </div>
+</section>
+
+<section id="tesouraria" class="secao">
+  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+    <button onclick="iniciarReceita()" style="flex:1; min-width:120px; background:linear-gradient(135deg,#00b894,#00cec9); color:#fff; border:none; border-radius:12px; padding:15px; font-weight:bold; cursor:pointer;">💰 Receita</button>
+    <button onclick="iniciarDespesa()" style="flex:1; min-width:120px; background:linear-gradient(135deg,#d63031,#ff7675); color:#fff; border:none; border-radius:12px; padding:15px; font-weight:bold; cursor:pointer;">💸 Despesa</button>
+    <button onclick="iniciarTransferencia()" style="flex:1; min-width:120px; background:linear-gradient(135deg,#6c5ce7,#a29bfe); color:#fff; border:none; border-radius:12px; padding:15px; font-weight:bold; cursor:pointer;">🔄 Transferência</button>
+    <button onclick="iniciarDeposito()" style="flex:1; min-width:120px; background:linear-gradient(135deg,#0984e3,#74b9ff); color:#fff; border:none; border-radius:12px; padding:15px; font-weight:bold; cursor:pointer;">🏦 Depósito</button>
+    <button onclick="abrirRelatorio()" style="flex:1; min-width:120px; background:linear-gradient(135deg,#f39c12,#f1c40f); color:#fff; border:none; border-radius:12px; padding:15px; font-weight:bold; cursor:pointer;">📊 Relatório</button>
+  </div>
+
+  <div class="area">
+    <h3 id="tituloTes">Área Financeira</h3>
+
+    <select id="categoria">
+      <option>Selecionar Categoria</option>
+    </select>
+
+    <label id="labelOrigem" class="labelSelect">Origem</label>
+    <select id="origem" style="display:none;">
+      <option>Selecionar Origem</option>
+    </select>
+
+    <label id="labelDestino" class="labelSelect">Destino</label>
+    <select id="destino" style="display:none;">
+      <option>Selecionar Destino</option>
+    </select>
+
+    <label id="labelBanco" class="labelSelect" style="display:none;">Banco</label>
+    <select id="bancoSelect" style="display:none;">
+      <option>Selecionar Banco</option>
+    </select>
+
+    <select id="membro" style="display:none;">
+      <option>Selecionar Membro</option>
+    </select>
+
+    <input type="text" id="descricao" placeholder="Descrição">
+    <input type="text" id="valor" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
+
+    <button class="salvar" id="btnSalvar" onclick="salvarLancamento()">Salvar Lançamento</button>
+
+    <h3 style="margin-top:30px;">Histórico de Lançamentos</h3>
+    <div id="historico"></div>
+
+    <div id="conteudo-relatorio" style="display:none;"></div>
+  </div>
+</section>
+
+<section id="secretaria" class="secao">
+  <div class="grid-secretaria">
+    <div class="card-sec cor-membros" onclick="abrirMembros()">👥 Membros</div>
+    <div class="card-sec cor-documentos" onclick="abrirDocumentos()">📄 Documentos</div>
+    <div class="card-sec cor-lideranca" onclick="abrirLideranca()">🔹 Liderança</div>
+    <div class="card-sec cor-relatorios" onclick="abrirRelatoriosSec()">📊 Relatórios</div>
+  </div>
+
+  <div class="area">
+    <h2 id="tituloSec">Selecione uma opção</h2>
+    <div id="conteudoSec"></div>
+  </div>
+</section>
+
+<script>
+  // ============================================================
+  // NAVEGAÇÃO
+  // ============================================================
+  function navegarPara(secao) {
+    document.querySelectorAll('.secao').forEach(el => el.classList.remove('ativa'));
+    document.getElementById(secao).classList.add('ativa');
+    document.querySelectorAll('.nav-principal button').forEach(btn => btn.classList.remove('ativo'));
+    document.querySelector(`.nav-principal button[onclick*="${secao}"]`).classList.add('ativo');
+    
+    if (secao === 'dashboard') atualizarDashboard();
+    if (secao === 'tesouraria') {
+      carregarHistorico();
+      carregarMembrosTes();
+    }
+    if (secao === 'secretaria') {
+      abrirMembros();
+    }
+  }
+
+  // ============================================================
+  // DASHBOARD
+  // ============================================================
+  function moeda(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function atualizarDashboard() {
+    let saldoCaixa = parseFloat(localStorage.getItem("saldoCaixa")) || 0;
+    let saldoBanco = parseFloat(localStorage.getItem("saldoBanco")) || 0;
+    let totalReceitas = parseFloat(localStorage.getItem("totalReceitas")) || 0;
+    let totalDespesas = parseFloat(localStorage.getItem("totalDespesas")) || 0;
+    let saldoTotal = saldoCaixa + saldoBanco;
+
+    document.getElementById("saldoCaixa").innerHTML = moeda(saldoCaixa);
+    document.getElementById("saldoBanco").innerHTML = moeda(saldoBanco);
+    document.getElementById("totalReceitas").innerHTML = moeda(totalReceitas);
+    document.getElementById("totalDespesas").innerHTML = moeda(totalDespesas);
+    document.getElementById("saldoTotal").innerHTML = moeda(saldoTotal);
+  }
+
+  // ============================================================
+  // TESOURARIA - CORRIGIDA
+  // ============================================================
+  let indiceEdicao = -1;
+  let membrosTes = JSON.parse(localStorage.getItem("membros")) || [];
+
+  function carregarMembrosTes() {
+    let select = document.getElementById("membro");
+    if (!select) return;
+    select.innerHTML = `<option>Selecionar Membro</option>`;
+    membrosTes.forEach(function(item) {
+      let nome = typeof item === "object" ? item.nome : item;
+      select.innerHTML += `<option>${nome}</option>`;
+    });
+  }
+
+  function carregarListaBancos() {
+    let bancos = JSON.parse(localStorage.getItem("bancos")) || [];
+    if (bancos.length === 0) {
+      bancos = ["Banco do Brasil", "Caixa Econômica", "Itaú", "Bradesco", "Santander"];
+      localStorage.setItem("bancos", JSON.stringify(bancos));
+    }
+    return bancos;
+  }
+
+  function formatarMoeda(campo) {
+    let valor = campo.value.replace(/\D/g, '');
+    valor = (Number(valor) / 100).toFixed(2) + '';
+    valor = valor.replace('.', ',');
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    campo.value = valor;
+  }
+
+  function limparCampos() {
+    document.getElementById("descricao").value = "";
+    document.getElementById("valor").value = "";
+    document.getElementById("bancoSelect").value = "";
+    document.getElementById("btnSalvar").textContent = "Salvar Lançamento";
+    indiceEdicao = -1;
+  }
+
+  function mostrarCamposLancamento() {
+    document.getElementById("conteudo-relatorio").style.display = "none";
+    document.getElementById("historico").style.display = "block";
+    document.getElementById("categoria").style.display = "block";
+    document.getElementById("membro").style.display = "block";
+    document.getElementById("origem").style.display = "block";
+    document.getElementById("destino").style.display = "none";
+    document.getElementById("labelOrigem").style.display = "block";
+    document.getElementById("labelDestino").style.display = "none";
+    document.getElementById("bancoSelect").style.display = "none";
+    document.getElementById("labelBanco").style.display = "none";
+    document.getElementById("descricao").style.display = "block";
+    document.getElementById("valor").style.display = "block";
+    document.getElementById("btnSalvar").style.display = "block";
+  }
+
+  function iniciarReceita() {
+    indiceEdicao = -1;
+    document.getElementById("tituloTes").innerHTML = "Lançamento de Receita";
+    mostrarCamposLancamento();
+    document.getElementById("categoria").innerHTML = `<option>Dízimo</option><option>Oferta</option><option>Campanha</option><option>Doação</option>`;
+    document.getElementById("labelOrigem").innerHTML = "ONDE O DINHEIRO VAI ENTRAR";
+    let bancos = carregarListaBancos();
+    let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
+    bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
+    document.getElementById("origem").innerHTML = opcoes.join('');
+    document.getElementById("destino").style.display = "none";
+    document.getElementById("labelDestino").style.display = "none";
+    document.getElementById("membro").style.display = "block";
+    limparCampos();
+    carregarHistorico();
+  }
+
+  function iniciarDespesa() {
+    indiceEdicao = -1;
+    document.getElementById("tituloTes").innerHTML = "Lançamento de Despesa";
+    mostrarCamposLancamento();
+    document.getElementById("categoria").innerHTML = `<option>Conta de Água</option><option>Conta de Luz</option><option>Internet</option><option>Material Igreja</option><option>Limpeza</option>`;
+    document.getElementById("labelOrigem").innerHTML = "DE ONDE O DINHEIRO VAI SAIR";
+    let bancos = carregarListaBancos();
+    let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
+    bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
+    document.getElementById("origem").innerHTML = opcoes.join('');
+    document.getElementById("destino").style.display = "none";
+    document.getElementById("labelDestino").style.display = "none";
+    document.getElementById("membro").style.display = "none";
+    limparCampos();
+    carregarHistorico();
+  }
+
+  function iniciarTransferencia() {
+    indiceEdicao = -1;
+    document.getElementById("tituloTes").innerHTML = "Transferência Bancária";
+    mostrarCamposLancamento();
+    document.getElementById("categoria").style.display = "none";
+    document.getElementById("membro").style.display = "none";
+    document.getElementById("origem").style.display = "block";
+    document.getElementById("destino").style.display = "block";
+    document.getElementById("labelOrigem").style.display = "block";
+    document.getElementById("labelDestino").style.display = "block";
+    document.getElementById("labelOrigem").innerHTML = "DE ONDE VAI SAIR";
+    document.getElementById("labelDestino").innerHTML = "PARA ONDE VAI";
+
+    let bancos = carregarListaBancos();
+    let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
+    bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
+    let htmlOpcoes = opcoes.join('');
+    document.getElementById("origem").innerHTML = htmlOpcoes;
+    document.getElementById("destino").innerHTML = htmlOpcoes;
+
+    document.getElementById("bancoSelect").style.display = "none";
+    document.getElementById("labelBanco").style.display = "none";
+    limparCampos();
+    carregarHistorico();
+  }
+
+  function iniciarDeposito() {
+    indiceEdicao = -1;
+    document.getElementById("tituloTes").innerHTML = "Depósito Bancário";
+    mostrarCamposLancamento();
+    document.getElementById("categoria").style.display = "none";
+    document.getElementById("membro").style.display = "none";
+    document.getElementById("origem").style.display = "block";
+    document.getElementById("destino").style.display = "block";
+    document.getElementById("labelOrigem").style.display = "block";
+    document.getElementById("labelDestino").style.display = "block";
+    document.getElementById("labelOrigem").innerHTML = "DE ONDE SAI";
+    document.getElementById("labelDestino").innerHTML = "PARA ONDE VAI";
+    document.getElementById("origem").innerHTML = `<option>Caixa Igreja</option>`;
+    document.getElementById("destino").innerHTML = `<option>Banco Igreja</option>`;
+
+    document.getElementById("bancoSelect").style.display = "block";
+    document.getElementById("labelBanco").style.display = "block";
+    document.getElementById("labelBanco").innerHTML = "BANCO DE DESTINO";
+    let bancos = carregarListaBancos();
+    let opcoes = ['<option>Selecionar Banco</option>'];
+    bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
+    document.getElementById("bancoSelect").innerHTML = opcoes.join('');
+
+    limparCampos();
+    carregarHistorico();
+  }
+
+  function abrirRelatorio() {
+    indiceEdicao = -1;
+    document.getElementById("tituloTes").innerHTML = "📊 Relatórios Financeiros";
+    document.getElementById("conteudo-relatorio").style.display = "block";
+    document.getElementById("historico").style.display = "none";
+    document.getElementById("categoria").style.display = "none";
+    document.getElementById("membro").style.display = "none";
+    document.getElementById("origem").style.display = "none";
+    document.getElementById("destino").style.display = "none";
+    document.getElementById("labelOrigem").style.display = "none";
+    document.getElementById("labelDestino").style.display = "none";
+    document.getElementById("bancoSelect").style.display = "none";
+    document.getElementById("labelBanco").style.display = "none";
+    document.getElementById("descricao").style.display = "none";
+    document.getElementById("valor").style.display = "none";
+    document.getElementById("btnSalvar").style.display = "none";
+
+    document.getElementById("conteudo-relatorio").innerHTML = `
+      <div class="filtros-relatorio">
+        <div>
+          <h4>📆 Relatório Mensal</h4>
+          <label>Mês/Ano:</label>
+          <input type="month" id="mesRelatorio" value="${new Date().toISOString().slice(0,7)}">
+          <button class="salvar" style="margin-top:10px;" onclick="gerarRelatorioMensal()">Gerar</button>
+        </div>
+        <div>
+          <h4>📋 Relação por Período</h4>
+          <label>Data Inicial:</label>
+          <input type="date" id="dataInicio">
+          <label>Data Final:</label>
+          <input type="date" id="dataFim">
+          <button class="salvar" style="margin-top:10px;" onclick="gerarRelacaoPeriodo()">Gerar</button>
+        </div>
+      </div>
+      <div id="relatorioContainer" class="relatorio-container">
+        <p style="text-align:center; color:#999;">Selecione uma opção e clique em "Gerar"</p>
+      </div>
+    `;
+  }
+
+  function recalcularFinanceiro() {
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+    let saldoCaixa = 0, saldoBanco = 0, totalReceitas = 0, totalDespesas = 0;
+
+    lancamentos.forEach(function(item) {
+      let valor = parseFloat(String(item.valor).replace(/\./g, '').replace(',', '.')) || 0;
+      if (item.tipo.includes("Receita")) {
+        totalReceitas += valor;
+        if (item.origem == "Caixa Igreja") saldoCaixa += valor;
+        else saldoBanco += valor;
+      }
+      if (item.tipo.includes("Despesa")) {
+        totalDespesas += valor;
+        if (item.origem == "Caixa Igreja") saldoCaixa -= valor;
+        else saldoBanco -= valor;
+      }
+      if (item.tipo.includes("Transferência")) {
+        if (item.origem == "Caixa Igreja" && item.destino == "Banco Igreja") {
+          saldoCaixa -= valor; saldoBanco += valor;
+        }
+        if (item.origem == "Banco Igreja" && item.destino == "Caixa Igreja") {
+          saldoBanco -= valor; saldoCaixa += valor;
+        }
+      }
+      if (item.tipo.includes("Depósito")) {
+        saldoCaixa -= valor; saldoBanco += valor;
+      }
+    });
+
+    localStorage.setItem("saldoCaixa", saldoCaixa);
+    localStorage.setItem("saldoBanco", saldoBanco);
+    localStorage.setItem("totalReceitas", totalReceitas);
+    localStorage.setItem("totalDespesas", totalDespesas);
+  }
+
+  // CORREÇÃO PRINCIPAL - SALVAR LANÇAMENTO
+  function salvarLancamento() {
+    let valorTexto = document.getElementById("valor").value;
+    valorTexto = valorTexto.replace(/\./g, '').replace(',', '.');
+    let valor = parseFloat(valorTexto);
+    
+    if (isNaN(valor) || valor <= 0) {
+      alert("Digite um valor válido (maior que zero)!");
+      return;
+    }
+
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+    let bancoValor = "";
+    if (document.getElementById("tituloTes").innerHTML.includes("Depósito")) {
+      bancoValor = document.getElementById("bancoSelect").value;
+    }
+
+    let novoLancamento = {
+      tipo: document.getElementById("tituloTes").innerHTML,
+      categoria: document.getElementById("categoria").value || "",
+      origem: document.getElementById("origem").value || "",
+      destino: document.getElementById("destino").value || "",
+      membro: document.getElementById("membro").value || "",
+      banco: bancoValor,
+      descricao: document.getElementById("descricao").value || "",
+      valor: document.getElementById("valor").value,
+      data: new Date().toLocaleString()
+    };
+
+    // CORREÇÃO: Verifica se é edição ou novo lançamento
+    if (indiceEdicao !== -1 && indiceEdicao < lancamentos.length) {
+      // Atualiza o lançamento existente
+      lancamentos[indiceEdicao] = novoLancamento;
+      alert("Lançamento atualizado com sucesso!");
+    } else {
+      // Adiciona novo lançamento
+      lancamentos.push(novoLancamento);
+      alert("Lançamento salvo com sucesso!");
+    }
+
+    localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
+    recalcularFinanceiro();
+    carregarHistorico();
+    limparCampos();
+  }
+
+  function carregarHistorico() {
+    let historico = document.getElementById("historico");
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+    let html = "";
+    lancamentos.forEach(function(item, index) {
+      let bancoInfo = item.banco ? `<br><b>Banco:</b> ${item.banco}` : "";
+      html += `
+        <div class="item-historico">
+          <b>${item.tipo}</b><br>
+          ${item.categoria}<br>
+          ${item.descricao}${bancoInfo}<br>
+          R$ ${item.valor}<br>
+          ${item.data}
+          <br><br>
+          <button onclick="editarLancamento(${index})">Editar</button>
+          <button class="btn-excluir" onclick="excluirLancamento(${index})">Excluir</button>
+        </div>
+      `;
+    });
+    historico.innerHTML = html;
+  }
+
+  function excluirLancamento(index) {
+    if (!confirm("Deseja realmente excluir este lançamento?")) return;
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+    lancamentos.splice(index, 1);
+    localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
+    recalcularFinanceiro();
+    carregarHistorico();
+    alert("Lançamento excluído com sucesso!");
+  }
+
+  // CORREÇÃO PRINCIPAL - EDITAR LANÇAMENTO
+  function editarLancamento(index) {
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+    let item = lancamentos[index];
+    indiceEdicao = index;
+
+    // Determina o tipo e abre
+    if (item.tipo.includes("Receita")) { 
+      iniciarReceita(); 
+    } else if (item.tipo.includes("Despesa")) { 
+      iniciarDespesa(); 
+    } else if (item.tipo.includes("Transferência")) { 
+      iniciarTransferencia(); 
+    } else if (item.tipo.includes("Depósito")) { 
+      iniciarDeposito(); 
+    }
+
+    // Preenche os campos com os dados
+    setTimeout(function() {
+      document.getElementById("categoria").value = item.categoria || "Selecionar Categoria";
+      document.getElementById("origem").value = item.origem || "Selecionar Origem";
+      document.getElementById("destino").value = item.destino || "Selecionar Destino";
+      document.getElementById("membro").value = item.membro || "Selecionar Membro";
+      if (document.getElementById("bancoSelect")) {
+        document.getElementById("bancoSelect").value = item.banco || "Selecionar Banco";
+      }
+      document.getElementById("descricao").value = item.descricao || "";
+      document.getElementById("valor").value = item.valor || "";
+      
+      // Muda o texto do botão
+      document.getElementById("btnSalvar").textContent = "Atualizar Lançamento";
+      
+      document.getElementById("tesouraria").scrollIntoView({ behavior: "smooth" });
+    }, 200);
+  }
+
+  // ============================================================
+  // RELATÓRIOS - CORRIGIDO
+  // ============================================================
+  function parseDataBR(str) {
+    if (!str) return null;
+    let dataParte = str.split(',')[0].trim();
+    let partes = dataParte.split('/');
+    if (partes.length === 3) {
+      let dia = parseInt(partes[0], 10);
+      let mes = parseInt(partes[1], 10) - 1;
+      let ano = parseInt(partes[2], 10);
+      return new Date(ano, mes, dia);
+    }
+    return null;
+  }
+
+  function formatarMoedaSimples(valor) {
+    return 'R$ ' + valor.toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+  }
+
+  function gerarRelatorioMensal() {
+    let mesAno = document.getElementById("mesRelatorio").value;
+    if (!mesAno) { alert("Selecione um mês/ano."); return; }
+    let [ano, mes] = mesAno.split('-').map(Number);
+    let mesInicio = new Date(ano, mes - 1, 1);
+    let mesFim = new Date(ano, mes, 0);
+
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+
+    let lancamentosMes = lancamentos.filter(item => {
+      let data = parseDataBR(item.data);
+      if (!data) return false;
+      return data >= mesInicio && data <= mesFim;
+    });
+
+    let saldoAnterior = 0;
+    let lancamentosAntes = lancamentos.filter(item => {
+      let data = parseDataBR(item.data);
+      if (!data) return false;
+      return data < mesInicio;
+    });
+    lancamentosAntes.forEach(item => {
+      let valor = parseFloat(String(item.valor).replace(/\./g, '').replace(',', '.')) || 0;
+      if (item.tipo.includes("Receita") || item.tipo.includes("Depósito")) saldoAnterior += valor;
+      else if (item.tipo.includes("Despesa") || item.tipo.includes("Transferência")) saldoAnterior -= valor;
+    });
+
+    let totalEntradas = 0, totalSaidas = 0;
+    let saldoCaixa = 0, saldoBanco = 0;
+
+    lancamentosMes.sort((a, b) => parseDataBR(a.data) - parseDataBR(b.data));
+
+    let linhas = lancamentosMes.map(item => {
+      let valor = parseFloat(String(item.valor).replace(/\./g, '').replace(',', '.')) || 0;
+      let entrada = 0, saida = 0;
+      if (item.tipo.includes("Receita") || item.tipo.includes("Depósito")) {
+        entrada = valor;
+        totalEntradas += valor;
+        if (item.origem === "Caixa Igreja") saldoCaixa += valor;
+        else saldoBanco += valor;
+      } else if (item.tipo.includes("Despesa") || item.tipo.includes("Transferência")) {
+        saida = valor;
+        totalSaidas += valor;
+        if (item.origem === "Caixa Igreja") saldoCaixa -= valor;
+        else saldoBanco -= valor;
+      }
+      let dataObj = parseDataBR(item.data);
+      let dataStr = dataObj ? dataObj.toLocaleDateString('pt-BR') : item.data;
+      let historico = `${item.categoria}`;
+      if (item.descricao) historico += ` - ${item.descricao}`;
+      if (item.membro && item.membro !== "Selecionar Membro") historico += ` (${item.membro})`;
+      if (item.origem && item.origem !== "Selecionar") historico += ` [${item.origem}`;
+      if (item.destino && item.destino !== "Selecionar") historico += ` → ${item.destino}`;
+      if (item.origem && item.origem !== "Selecionar") historico += `]`;
+      if (item.banco) historico += ` - ${item.banco}`;
+      return { data: dataStr, historico, entrada, saida };
+    });
+
+    let saldoFinal = saldoAnterior + totalEntradas - totalSaidas;
+
+    let html = `
+      <div id="relatorioParaImprimir">
+        <div style="text-align:center; margin-bottom:20px;">
+          <h2>IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
+          <p><strong>CNPJ:</strong> 00237230/0001-79 - Goiânia/GO</p>
+          <h3>DEMONSTRATIVO FINANCEIRO - MÊS ${mesAno}</h3>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:15%;">Data</th>
+              <th style="width:50%;">Histórico</th>
+              <th style="width:17.5%; text-align:right;">Entrada</th>
+              <th style="width:17.5%; text-align:right;">Saída</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    if (linhas.length === 0) {
+      html += `<tr><td colspan="4" style="text-align:center;">Nenhum lançamento neste mês</td></tr>`;
+    } else {
+      linhas.forEach(row => {
+        html += `
+          <tr>
+            <td>${row.data}</td>
+            <td>${row.historico}</td>
+            <td style="text-align:right;">${row.entrada > 0 ? formatarMoedaSimples(row.entrada) : 'R$ 0,00'}</td>
+            <td style="text-align:right;">${row.saida > 0 ? formatarMoedaSimples(row.saida) : 'R$ 0,00'}</td>
+          </tr>
+        `;
+      });
+    }
+
+    html += `
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2"><strong>TOTAIS</strong></td>
+              <td style="text-align:right;"><strong>${formatarMoedaSimples(totalEntradas)}</strong></td>
+              <td style="text-align:right;"><strong>${formatarMoedaSimples(totalSaidas)}</strong></td>
+            </tr>
+            <tr class="saldo-row">
+              <td colspan="4" style="text-align:right; font-weight:bold;">
+                SALDO DO MÊS: ${formatarMoedaSimples(saldoFinal)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div style="margin-top:25px;">
+          <h4>COMPOSIÇÃO DO SALDO</h4>
+          <table style="width:100%;">
+            <tr>
+              <td style="width:33%;">Saldo em caixa</td>
+              <td style="width:17%; text-align:right;">${formatarMoedaSimples(saldoCaixa)}</td>
+              <td style="width:33%;">Saldo em conta corrente / Bancos</td>
+              <td style="width:17%; text-align:right;">${formatarMoedaSimples(saldoBanco)}</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="3"><strong>SALDO PARA O PRÓXIMO MÊS</strong></td>
+              <td style="text-align:right;"><strong>${formatarMoedaSimples(saldoCaixa + saldoBanco)}</strong></td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-top:25px;">
+          <table style="width:100%;">
+            <tr>
+              <th style="text-align:left; width:50%;">RESUMO</th>
+              <th style="text-align:right; width:50%;">ASSINATURA(S) DO(S) TESOUREIRO(S)</th>
+            </tr>
+            <tr>
+              <td><strong>SALDO ANTERIOR</strong></td>
+              <td style="text-align:right;">${formatarMoedaSimples(saldoAnterior)}</td>
+            </tr>
+            <tr>
+              <td><strong>TOTAL DE ENTRADAS DO MÊS</strong></td>
+              <td style="text-align:right;">${formatarMoedaSimples(totalEntradas)}</td>
+            </tr>
+            <tr>
+              <td><strong>TOTAL DE SAÍDAS DO MÊS</strong></td>
+              <td style="text-align:right;">${formatarMoedaSimples(totalSaidas)}</td>
+            </tr>
+            <tr class="saldo-row">
+              <td><strong>SALDO ATUAL (PRÓXIMO MÊS)</strong></td>
+              <td style="text-align:right;"><strong>${formatarMoedaSimples(saldoFinal)}</strong></td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-top:20px; text-align:center; font-size:12px; color:#666;">
+          <p>Relatório gerado em ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("relatorioContainer").innerHTML = html;
+
+    const btn = document.createElement("button");
+    btn.className = "btn-imprimir";
+    btn.textContent = "🖨 Imprimir / PDF";
+    btn.onclick = function() { window.print(); };
+    document.getElementById("relatorioContainer").appendChild(btn);
+  }
+
+  function gerarRelacaoPeriodo() {
+    let dataInicio = document.getElementById("dataInicio").value;
+    let dataFim = document.getElementById("dataFim").value;
+    if (!dataInicio || !dataFim) { alert("Selecione as datas inicial e final."); return; }
+
+    let inicio = new Date(dataInicio + 'T00:00:00');
+    let fim = new Date(dataFim + 'T23:59:59');
+
+    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+
+    let lancamentosPeriodo = lancamentos.filter(item => {
+      let data = parseDataBR(item.data);
+      if (!data) return false;
+      let dataComparacao = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+      return dataComparacao >= inicio && dataComparacao <= fim;
+    });
+
+    lancamentosPeriodo.sort((a, b) => {
+      let da = parseDataBR(a.data);
+      let db = parseDataBR(b.data);
+      return da - db;
+    });
+
+    if (lancamentosPeriodo.length === 0) {
+      document.getElementById("relatorioContainer").innerHTML =
+        `<p style="text-align:center; color:#999;">Nenhum lançamento encontrado no período.</p>`;
+      return;
+    }
+
+    let lancamentosAnteriores = lancamentos.filter(item => {
+      let data = parseDataBR(item.data);
+      if (!data) return false;
+      let dataComparacao = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+      return dataComparacao < inicio;
+    });
+
+    let saldoAcumulado = 0;
+    lancamentosAnteriores.forEach(item => {
+      let valor = parseFloat(String(item.valor).replace(/\./g, '').replace(',', '.')) || 0;
+      if (item.tipo.includes("Receita") || item.tipo.includes("Depósito")) saldoAcumulado += valor;
+      else if (item.tipo.includes("Despesa") || item.tipo.includes("Transferência")) saldoAcumulado -= valor;
+    });
+
+    let linhas = lancamentosPeriodo.map(item => {
+      let valor = parseFloat(String(item.valor).replace(/\./g, '').replace(',', '.')) || 0;
+      let entrada = 0, saida = 0;
+      if (item.tipo.includes("Receita") || item.tipo.includes("Depósito")) {
+        entrada = valor;
+        saldoAcumulado += valor;
+      } else if (item.tipo.includes("Despesa") || item.tipo.includes("Transferência")) {
+        saida = valor;
+        saldoAcumulado -= valor;
+      }
+      let dataObj = parseDataBR(item.data);
+      let dataStr = dataObj ? dataObj.toLocaleDateString('pt-BR') : item.data;
+      let historico = `${item.categoria}`;
+      if (item.descricao) historico += ` - ${item.descricao}`;
+      if (item.membro && item.membro !== "Selecionar Membro") historico += ` (${item.membro})`;
+      if (item.origem && item.origem !== "Selecionar") historico += ` [${item.origem}`;
+      if (item.destino && item.destino !== "Selecionar") historico += ` → ${item.destino}`;
+      if (item.origem && item.origem !== "Selecionar") historico += `]`;
+      if (item.banco) historico += ` - ${item.banco}`;
+      return { data: dataStr, historico, entrada, saida, saldo: saldoAcumulado };
+    });
+
+    let html = `
+      <div id="relatorioParaImprimir">
+        <div style="text-align:center; margin-bottom:20px;">
+          <h2>IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
+          <p><strong>CNPJ:</strong> 00237230/0001-79 - Goiânia/GO</p>
+          <h3>RELAÇÃO DE LANÇAMENTOS - ENTRADAS E SAÍDAS</h3>
+          <p><strong>Período: ${dataInicio} à ${dataFim}</strong></p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:15%;">Data</th>
+              <th style="width:40%;">Histórico</th>
+              <th style="width:15%; text-align:right;">Entrada</th>
+              <th style="width:15%; text-align:right;">Saída</th>
+              <th style="width:15%; text-align:right;">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    linhas.forEach(row => {
+      html += `
+        <tr>
+          <td>${row.data}</td>
+          <td>${row.historico}</td>
+          <td style="text-align:right;">${row.entrada > 0 ? formatarMoedaSimples(row.entrada) : 'R$ 0,00'}</td>
+          <td style="text-align:right;">${row.saida > 0 ? formatarMoedaSimples(row.saida) : 'R$ 0,00'}</td>
+          <td style="text-align:right;">${formatarMoedaSimples(row.saldo)}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+        <div style="margin-top:20px; text-align:center; font-size:12px; color:#666;">
+          <p>Relatório gerado em ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("relatorioContainer").innerHTML = html;
+
+    const btn = document.createElement("button");
+    btn.className = "btn-imprimir";
+    btn.textContent = "🖨 Imprimir / PDF";
+    btn.onclick = function() { window.print(); };
+    document.getElementById("relatorioContainer").appendChild(btn);
+  }
+
+  // ============================================================
+  // SECRETARIA
+  // ============================================================
+  let membrosSec = JSON.parse(localStorage.getItem("membros")) || [];
+  let lideranca = JSON.parse(localStorage.getItem("lideranca")) || [];
+
+  function abrirMembros() {
+    document.getElementById("tituloSec").innerText = "Cadastro de Membros";
+    document.getElementById("conteudoSec").innerHTML = `
+      <input id="nomeM" placeholder="Nome">
+      <input id="telefone" placeholder="Telefone">
+      <input id="endereco" placeholder="Endereço">
+      <select id="cargoM">
+        <option>Membro</option>
+        <option>Membra</option>
+      </select>
+      <select id="situacaoM">
+        <option>Ativo</option>
+        <option>Inativo</option>
+      </select>
+      <button class="salvar" onclick="salvarMembro()">Salvar Membro</button>
+      <div id="listaMembros"></div>
+    `;
+    renderMembros();
+  }
+
+  function salvarMembro() {
+    let nome = document.getElementById("nomeM").value;
+    let telefone = document.getElementById("telefone").value;
+    let endereco = document.getElementById("endereco").value;
+    let cargo = document.getElementById("cargoM").value;
+    let situacao = document.getElementById("situacaoM").value;
+    if (!nome) { alert("Digite o nome"); return; }
+    membrosSec.push({ nome, telefone, endereco, cargo, situacao });
+    localStorage.setItem("membros", JSON.stringify(membrosSec));
+    abrirMembros();
+  }
+
+  function renderMembros() {
+    let box = document.getElementById("listaMembros");
+    if (!box) return;
+    box.innerHTML = "";
+    membrosSec.forEach((m, index) => {
+      box.innerHTML += `
+        <div class="item-sec">
+          <b>${m.nome}</b><br>
+          ${m.cargo} - ${m.situacao}<br><br>
+          <button onclick="editarMembro(${index})">Editar</button>
+          <button onclick="excluirMembro(${index})">Excluir</button>
+        </div>
+      `;
+    });
+  }
+
+  function excluirMembro(index) {
+    membrosSec.splice(index, 1);
+    localStorage.setItem("membros", JSON.stringify(membrosSec));
+    renderMembros();
+  }
+
+  function editarMembro(index) {
+    let m = membrosSec[index];
+    abrirMembros();
+    setTimeout(() => {
+      document.getElementById("nomeM").value = m.nome;
+      document.getElementById("telefone").value = m.telefone;
+      document.getElementById("endereco").value = m.endereco;
+      document.getElementById("cargoM").value = m.cargo;
+      document.getElementById("situacaoM").value = m.situacao;
+      membrosSec.splice(index, 1);
+      localStorage.setItem("membros", JSON.stringify(membrosSec));
+      renderMembros();
+    }, 100);
+  }
+
+  function abrirDocumentos() {
+    document.getElementById("tituloSec").innerText = "Documentos da Igreja";
+    let lista = membrosSec.map(m => `<option>${m.nome}</option>`).join("");
+    document.getElementById("conteudoSec").innerHTML = `
+      <select id="tipoDoc">
+        <option>Carta</option>
+        <option>Batismo</option>
+        <option>Casamento</option>
+        <option>Criança</option>
+      </select>
+      <select id="nomeDoc">${lista}</select>
+      <div id="casamentoCampos" style="display:none;">
+        <select id="noivo"><option>Selecionar Noivo</option>${lista}</select>
+        <select id="noiva"><option>Selecionar Noiva</option>${lista}</select>
+      </div>
+      <input id="dataDoc" type="date">
+      <button class="salvar" onclick="gerarDocumento()">Gerar Documento</button>
+      <div id="docContainer" class="doc-container"></div>
+    `;
+    document.getElementById("tipoDoc").addEventListener("change", function() {
+      let show = this.value === "Casamento";
+      document.getElementById("casamentoCampos").style.display = show ? "block" : "none";
+      document.getElementById("nomeDoc").style.display = show ? "none" : "block";
+    });
+  }
+
+  function gerarDocumento() {
+    let tipo = document.getElementById("tipoDoc").value;
+    let nome = document.getElementById("nomeDoc").value;
+    let noivo = document.getElementById("noivo") ? document.getElementById("noivo").value : "";
+    let noiva = document.getElementById("noiva") ? document.getElementById("noiva").value : "";
+    let data = document.getElementById("dataDoc").value;
+    let igreja = "IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS";
+
+    let presidente = lideranca.find(l => l.cargo === "Pastor Presidente" || l.cargo === "Pastora Presidente");
+    let secretario = lideranca.find(l => l.cargo === "Secretário" || l.cargo === "Secretária");
+    let nomePresidente = presidente ? presidente.nome : "";
+    let cargoPresidente = presidente ? presidente.cargo : "Pastor Presidente";
+    let nomeSecretario = secretario ? secretario.nome : "";
+    let cargoSecretario = secretario ? secretario.cargo : "Secretário(a)";
+
+    function modeloDocumento(titulo, texto1, versiculo, frase) {
+      return `
+        <div style="width:190mm; min-height:277mm; margin:10mm auto; padding:8mm; box-sizing:border-box; font-family:'Times New Roman'; background:white; line-height:1.5; border:4px double #000; text-align:center;">
+          <h2 style="font-size:28px;">${igreja}</h2>
+          <p style="font-size:18px;">"Pregando o Evangelho do Reino"</p>
+          <h1 style="font-size:36px;">${titulo}</h1>
+          <p style="font-size:22px;">${texto1}</p>
+          <h1 style="font-size:38px; text-transform:uppercase;">${nome}</h1>
+          <p style="font-size:22px;">${frase}</p>
+          <p style="font-size:18px; margin-top:15px; font-style:italic;">${versiculo}</p>
+          <p style="font-size:18px;">Goiânia/GO, ${new Date(data).toLocaleDateString('pt-BR')}</p>
+          <div style="display:flex; justify-content:space-between; margin-top:70px; font-size:18px;">
+            <div>${nomePresidente}<br>${cargoPresidente}</div>
+            <div>${nomeSecretario}<br>${cargoSecretario}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    let texto = "";
+    if (tipo === "Carta") {
+      texto = modeloDocumento(
+        "CARTA DE APRESENTAÇÃO",
+        "Esta igreja recomenda à amada igreja o(a) irmão(ã)",
+        "Mateus 10:7 — E, indo, pregai, dizendo: É chegado o Reino dos céus.",
+        "o(a) qual se encontra em plena comunhão com este ministério, tendo testemunho cristão digno, conduta ilibada e compromisso com a obra de Deus. Rogamos que o(a) recebam na paz do Senhor Jesus para cooperar e congregar conforme a direção pastoral."
+      );
+    } else if (tipo === "Batismo") {
+      texto = modeloDocumento(
+        "CERTIFICADO DE BATISMO",
+        "Certificamos para os devidos fins que o(a) irmão(ã)",
+        "Mateus 28:19 — Portanto ide, fazei discípulos de todas as nações, batizando-os em nome do Pai, e do Filho, e do Espírito Santo.",
+        "desceu às águas batismais conforme os ensinamentos bíblicos, sendo batizado(a) em nome do Pai, do Filho e do Espírito Santo, testemunhando publicamente sua fé em Jesus Cristo como Senhor e Salvador."
+      );
+    } else if (tipo === "Criança") {
+      texto = modeloDocumento(
+        "CERTIFICADO DE APRESENTAÇÃO",
+        "Certificamos para os devidos fins que a criança",
+        "Marcos 10:14 — Deixai vir a mim os pequeninos e não os impeçais, porque dos tais é o Reino de Deus.",
+        "foi apresentada ao Senhor nesta igreja, recebendo oração, consagração e bênção pastoral diante da congregação, conforme os ensinamentos da Palavra de Deus."
+      );
+    } else if (tipo === "Casamento") {
+      texto = `
+        <div style="width:190mm; min-height:277mm; margin:10mm auto; padding:8mm; box-sizing:border-box; font-family:'Times New Roman'; background:white; line-height:1.6; border:4px double #000; text-align:center;">
+          <h2 style="font-size:28px;">${igreja}</h2>
+          <p style="font-size:18px;">"O que Deus uniu, não o separe o homem."</p>
+          <h1 style="font-size:34px;">CERTIFICADO DE CASAMENTO</h1>
+          <h1 style="font-size:32px; line-height:1.4;">${noivo}<br>&<br>${noiva}</h1>
+          <p style="font-size:22px;">receberam a bênção matrimonial nesta igreja, assumindo aliança diante de Deus e da congregação, comprometendo-se em viver em união, fidelidade e amor, conforme os ensinamentos da Palavra do Senhor.</p>
+          <p style="font-size:18px; font-style:italic;">Gênesis 2:24 — Portanto deixará o homem o seu pai e a sua mãe, e apegar-se-á à sua mulher, e serão ambos uma carne.</p>
+          <p style="font-size:18px;">Goiânia/GO, ${new Date(data).toLocaleDateString('pt-BR')}</p>
+          <div style="display:flex; justify-content:space-between; margin-top:20px; font-size:18px;">
+            <div>${nomePresidente}<br>${cargoPresidente}</div>
+            <div>${nomeSecretario}<br>${cargoSecretario}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById("docContainer").innerHTML = `
+      <button class="btn-imprimir" onclick="imprimirDocumento()">🖨 Imprimir / Baixar PDF</button>
+      ${texto}
+    `;
+  }
+
+  function imprimirDocumento() {
+    let conteudo = document.getElementById("docContainer").innerHTML;
+    let tela = window.open('', '', 'width=900,height=700');
+    tela.document.write(`
+      <html><head><title>Documento Igreja</title>
+      <style>
+        @page { size: A4 portrait; margin: 0; }
+        html, body { width: 210mm; min-height: 297mm; margin: 0; padding: 0; background: white; font-family: 'Times New Roman'; }
+        button { display: none; }
+      </style>
+      </head><body>${conteudo}</body></html>
+    `);
+    tela.document.close();
+    setTimeout(() => { tela.print(); }, 500);
+  }
+
+  function abrirLideranca() {
+    document.getElementById("tituloSec").innerText = "Liderança da Igreja";
+    document.getElementById("conteudoSec").innerHTML = `
+      <input id="nomeLider" placeholder="Nome">
+      <select id="cargoLider">
+        <option>Pastor Presidente</option><option>Pastora Presidente</option>
+        <option>Tesoureiro</option><option>Tesoureira</option>
+        <option>Secretário</option><option>Secretária</option>
+        <option>Diácono</option><option>Diaconisa</option>
+        <option>Presbítero</option><option>Presbítera</option>
+        <option>Evangelista</option>
+        <option>Missionário</option><option>Missionária</option>
+        <option>Pastor</option><option>Pastora</option>
+      </select>
+      <button class="salvar" onclick="salvarLideranca()">Salvar Liderança</button>
+      <div id="listaLider"></div>
+    `;
+    renderLideranca();
+  }
+
+  function salvarLideranca() {
+    let nome = document.getElementById("nomeLider").value;
+    let cargo = document.getElementById("cargoLider").value;
+    if (!nome) { alert("Digite o nome"); return; }
+    lideranca.push({ nome, cargo });
+    localStorage.setItem("lideranca", JSON.stringify(lideranca));
+    abrirLideranca();
+  }
+
+  function renderLideranca() {
+    let box = document.getElementById("listaLider");
+    if (!box) return;
+    box.innerHTML = "";
+    lideranca.forEach((l, index) => {
+      box.innerHTML += `
+        <div class="item-sec">
+          <b>${l.nome}</b><br>${l.cargo}<br><br>
+          <button onclick="editarLideranca(${index})">Editar</button>
+          <button onclick="excluirLideranca(${index})">Excluir</button>
+        </div>
+      `;
+    });
+  }
+
+  function excluirLideranca(index) {
+    lideranca.splice(index, 1);
+    localStorage.setItem("lideranca", JSON.stringify(lideranca));
+    renderLideranca();
+  }
+
+  function editarLideranca(index) {
+    let l = lideranca[index];
+    abrirLideranca();
+    setTimeout(() => {
+      document.getElementById("nomeLider").value = l.nome;
+      document.getElementById("cargoLider").value = l.cargo;
+      lideranca.splice(index, 1);
+      localStorage.setItem("lideranca", JSON.stringify(lideranca));
+      renderLideranca();
+    }, 100);
+  }
+
+  function abrirRelatoriosSec() {
+    document.getElementById("tituloSec").innerText = "Relatórios";
+    let relatorio = "<h3>Membros</h3>";
+    relatorio += membrosSec.map(m => `
+      <div class="item-sec"><b>${m.nome}</b><br>${m.cargo} - ${m.situacao}</div>
+    `).join("");
+    relatorio += "<h3 style='margin-top:20px;'>Liderança</h3>";
+    relatorio += lideranca.map(l => `
+      <div class="item-sec"><b>${l.nome}</b><br>${l.cargo}</div>
+    `).join("");
+    document.getElementById("conteudoSec").innerHTML = relatorio;
+  }
+
+  // ============================================================
+  // INICIALIZAÇÃO
+  // ============================================================
+  window.onload = function() {
+    atualizarDashboard();
+    carregarMembrosTes();
+    carregarHistorico();
+    abrirMembros();
+  };
+</script>
+</body>
+</html>
