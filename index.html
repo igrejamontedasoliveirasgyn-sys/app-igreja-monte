@@ -1101,69 +1101,7 @@
     `<br><button class="btn-imprimir" onclick="imprimirRelatorio()">🖨 Imprimir / PDF</button>`;
 }
   function imprimirRelatorio() {
-
-    const relatorio = document.getElementById("relatorioContainer");
-
-    if (!relatorio) {
-        window.print();
-        return;
-    }
-
-    const janela = window.open("", "_blank");
-
-    janela.document.write(`
-<!DOCTYPE html>
-<html>
-<head>
-<title>Relatório</title>
-
-<style>
-
-@page{
-    size:A4 portrait;
-    margin:8mm;
-}
-
-body{
-    margin:0;
-    padding:0;
-    font-family:"Times New Roman",serif;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-th,td{
-    border:1px solid #000;
-    padding:6px;
-}
-
-button{
-    display:none;
-}
-
-</style>
-
-</head>
-
-<body>
-
-${relatorio.outerHTML}
-
-</body>
-
-</html>
-`);
-
-    janela.document.close();
-
-    setTimeout(() => {
-        janela.print();
-        janela.close();
-    }, 500);
-
+    window.print();
 }
 
   // ============================================================
