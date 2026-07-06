@@ -987,8 +987,13 @@
     </div>
   `;
 
-  document.getElementById("relatorioContainer").innerHTML = html +
-    `<br><button class="btn-imprimir" onclick="imprimirRelatorio()">🖨 Imprimir / PDF</button>`;
+  document.getElementById("relatorioContainer").innerHTML = html;
+
+  const btn=document.createElement("button");
+  btn.className="btn-imprimir";
+  btn.textContent="🖨 Imprimir / PDF";
+  btn.onclick=imprimirRelatorio;
+  document.getElementById("relatorioContainer").appendChild(btn);
 }
 
   function gerarRelacaoPeriodo() {
@@ -1097,8 +1102,13 @@
     </div>
   `;
 
-  document.getElementById("relatorioContainer").innerHTML = html +
-    `<br><button class="btn-imprimir" onclick="imprimirRelatorio()">🖨 Imprimir / PDF</button>`;
+  document.getElementById("relatorioContainer").innerHTML = html;
+
+  const btn=document.createElement("button");
+  btn.className="btn-imprimir";
+  btn.textContent="🖨 Imprimir / PDF";
+  btn.onclick=imprimirRelatorio;
+  document.getElementById("relatorioContainer").appendChild(btn);
 }
   function imprimirRelatorio() {
     window.print();
