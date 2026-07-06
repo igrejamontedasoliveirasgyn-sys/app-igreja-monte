@@ -433,21 +433,33 @@
   //  NAVEGAÇÃO ENTRE SEÇÕES
   // ============================================================
   function navegarPara(secao) {
-    document.querySelectorAll('.secao').forEach(el => el.classList.remove('ativa'));
-    document.getElementById(secao).classList.add('ativa');
-    document.querySelectorAll('.nav-principal button').forEach(btn => btn.classList.remove('ativo'));
-    document.querySelector(`.nav-principal button[onclick*="${secao}"]`).classList.add('ativo');
-    // Atualiza dados ao mudar para dashboard
-    if (secao === 'dashboard') atualizarDashboard();
-    // Se for tesouraria, carregar histórico e membros
-    if (secao === 'tesouraria') {
-  // carregarHistorico();
-  // carregarMembrosTes();
-}
-    if (secao === 'secretaria') {
-      // já inicializa com membros? Deixamos vazio.
-    }
+  document.querySelectorAll('.secao').forEach(function(el) {
+    el.classList.remove('ativa');
+  });
+
+  let tela = document.getElementById(secao);
+  if (tela) {
+    tela.classList.add('ativa');
   }
+
+  document.querySelectorAll('.nav-principal button').forEach(function(btn) {
+    btn.classList.remove('ativo');
+  });
+
+  let botao = document.querySelector('.nav-principal button[onclick*="' + secao + '"]');
+  if (botao) {
+    botao.classList.add('ativo');
+  }
+
+  if (secao === 'dashboard') {
+    atualizarDashboard();
+  }
+
+  if (secao === 'tesouraria') {
+    carregarHistorico();
+    carregarMembrosTes();
+  }
+}
 
   // ============================================================
   //  DASHBOARD
