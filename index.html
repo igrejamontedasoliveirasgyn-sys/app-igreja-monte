@@ -485,16 +485,8 @@
   document.getElementById("tituloTes").innerHTML = "Lançamento de Receita";
   mostrarCamposLancamento();
   
-  // CATEGORIAS
-  document.getElementById("categoria").innerHTML = `
-    <option>Dízimo</option>
-    <option>Oferta</option>
-    <option>Campanha</option>
-    <option>Doação</option>
-    <option>Culto da Família</option>
-    <option>Culto de Jovens</option>
-    <option>Escola Dominical</option>
-  `;
+  // CARREGA CATEGORIAS DO SISTEMA
+  carregarCategoriasSelect('receitas');
   
   // ORIGEM (DE ONDE VEM O DINHEIRO)
   document.getElementById("labelOrigem").innerHTML = "ORIGEM (De onde vem)";
@@ -503,7 +495,7 @@
   bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
   document.getElementById("origem").innerHTML = opcoes.join('');
   
-  // DESTINO (PARA ONDE VAI) - AGORA VISÍVEL PARA RECEITAS
+  // DESTINO (PARA ONDE VAI)
   document.getElementById("destino").style.display = "block";
   document.getElementById("labelDestino").style.display = "block";
   document.getElementById("labelDestino").innerHTML = "DESTINO (Para onde vai)";
@@ -516,7 +508,7 @@
     <option>Fundo Missionário</option>
   `;
   
-  // BANCO (QUAL BANCO FOI USADO)
+  // BANCO UTILIZADO
   document.getElementById("bancoSelect").style.display = "block";
   document.getElementById("labelBanco").style.display = "block";
   document.getElementById("labelBanco").innerHTML = "BANCO UTILIZADO";
@@ -530,23 +522,49 @@
   limparCampos();
   carregarHistorico();
 }
-
   function iniciarDespesa() {
-    indiceEdicao = -1;
-    document.getElementById("tituloTes").innerHTML = "Lançamento de Despesa";
-    mostrarCamposLancamento();
-    document.getElementById("categoria").innerHTML = `<option>Conta de Água</option><option>Conta de Luz</option><option>Internet</option><option>Material Igreja</option><option>Limpeza</option>`;
-    document.getElementById("labelOrigem").innerHTML = "DE ONDE O DINHEIRO VAI SAIR";
-    let bancos = carregarListaBancos();
-    let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
-    bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
-    document.getElementById("origem").innerHTML = opcoes.join('');
-    document.getElementById("destino").style.display = "none";
-    document.getElementById("labelDestino").style.display = "none";
-    document.getElementById("membro").style.display = "none";
-    limparCampos();
-    carregarHistorico();
-  }
+  indiceEdicao = -1;
+  document.getElementById("tituloTes").innerHTML = "Lançamento de Despesa";
+  mostrarCamposLancamento();
+  
+  // CARREGA CATEGORIAS DO SISTEMA
+  carregarCategoriasSelect('despesas');
+  
+  // ORIGEM (DE ONDE SAI)
+  document.getElementById("labelOrigem").innerHTML = "DE ONDE O DINHEIRO VAI SAIR";
+  let bancos = carregarListaBancos();
+  let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
+  bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
+  document.getElementById("origem").innerHTML = opcoes.join('');
+  
+  // DESTINO (PARA ONDE VAI)
+  document.getElementById("destino").style.display = "block";
+  document.getElementById("labelDestino").style.display = "block";
+  document.getElementById("labelDestino").innerHTML = "DESTINO (Para onde vai)";
+  document.getElementById("destino").innerHTML = `
+    <option>Selecionar Destino</option>
+    <option>Água</option>
+    <option>Luz</option>
+    <option>Internet</option>
+    <option>Material</option>
+    <option>Limpeza</option>
+    <option>Manutenção</option>
+  `;
+  
+  // BANCO UTILIZADO
+  document.getElementById("bancoSelect").style.display = "block";
+  document.getElementById("labelBanco").style.display = "block";
+  document.getElementById("labelBanco").innerHTML = "BANCO UTILIZADO";
+  let opcoesBanco = ['<option>Selecionar Banco</option>'];
+  bancos.forEach(function(b) { opcoesBanco.push(`<option>${b}</option>`); });
+  document.getElementById("bancoSelect").innerHTML = opcoesBanco.join('');
+  
+  // MEMBRO (OCULTO PARA DESPESAS)
+  document.getElementById("membro").style.display = "none";
+  
+  limparCampos();
+  carregarHistorico();
+}
 
   function iniciarTransferencia() {
     indiceEdicao = -1;
@@ -1460,6 +1478,138 @@ function salvarEdicaoLideranca(index) {
     `).join("");
     document.getElementById("conteudoSec").innerHTML = relatorio;
   }
+
+  // ============================================================
+// SISTEMA DE CATEGORIAS
+// ============================================================
+
+function carregarCategorias() {
+  let categorias = JSON.parse(localStorage.getItem("categorias"));
+  if (!categorias) {
+    categorias = {
+      receitas: ["Dízimo", "Oferta", "Campanha", "Doação", "Culto da Família", "Culto de Jovens", "Escola Dominical"],
+      despesas: ["Conta de Água", "Conta de Luz", "Internet", "Material Igreja", "Limpeza", "Manutenção", "Aluguel"]
+    };
+    localStorage.setItem("categorias", JSON.stringify(categorias));
+  }
+  return categorias;
+}
+
+function salvarCategorias(categorias) {
+  localStorage.setItem("categorias", JSON.stringify(categorias));
+}
+
+function abrirGerenciarCategorias() {
+  let categorias = carregarCategorias();
+  let modal = document.createElement("div");
+  modal.id = "modalCategorias";
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); display: flex; justify-content: center;
+    align-items: center; z-index: 9999;
+  `;
+  modal.innerHTML = `
+    <div style="background: white; padding: 30px; border-radius: 20px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+      <h2 style="margin-bottom: 20px;">📂 Gerenciar Categorias</h2>
+      <div style="margin-bottom: 20px;">
+        <h3>💰 Receitas</h3>
+        <div id="listaReceitas">
+          ${categorias.receitas.map((cat, i) => `
+            <div style="display: flex; gap: 10px; margin-bottom: 5px; align-items: center;">
+              <input id="rec_${i}" value="${cat}" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+              <button onclick="removerCategoria('receitas', ${i})" style="background: #d63031; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <button onclick="adicionarCategoria('receitas')" style="margin-top: 10px; background: #00b894; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">+ Adicionar Receita</button>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <h3>💸 Despesas</h3>
+        <div id="listaDespesas">
+          ${categorias.despesas.map((cat, i) => `
+            <div style="display: flex; gap: 10px; margin-bottom: 5px; align-items: center;">
+              <input id="desp_${i}" value="${cat}" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+              <button onclick="removerCategoria('despesas', ${i})" style="background: #d63031; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <button onclick="adicionarCategoria('despesas')" style="margin-top: 10px; background: #00b894; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">+ Adicionar Despesa</button>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button onclick="salvarCategoriasModal()" style="flex:1; background: #0f172a; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer;">💾 Salvar Categorias</button>
+        <button onclick="fecharModal()" style="flex:1; background: #ccc; color: #333; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer;">✖ Fechar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function fecharModal() {
+  let modal = document.getElementById("modalCategorias");
+  if (modal) modal.remove();
+}
+
+function adicionarCategoria(tipo) {
+  let categorias = carregarCategorias();
+  categorias[tipo].push("Nova Categoria");
+  salvarCategorias(categorias);
+  abrirGerenciarCategorias();
+}
+
+function removerCategoria(tipo, index) {
+  let categorias = carregarCategorias();
+  if (categorias[tipo].length <= 1) {
+    alert("Você precisa ter pelo menos uma categoria!");
+    return;
+  }
+  categorias[tipo].splice(index, 1);
+  salvarCategorias(categorias);
+  abrirGerenciarCategorias();
+}
+
+function salvarCategoriasModal() {
+  let categorias = { receitas: [], despesas: [] };
+  let receitasInputs = document.querySelectorAll('#listaReceitas input');
+  receitasInputs.forEach(input => {
+    if (input.value.trim()) categorias.receitas.push(input.value.trim());
+  });
+  let despesasInputs = document.querySelectorAll('#listaDespesas input');
+  despesasInputs.forEach(input => {
+    if (input.value.trim()) categorias.despesas.push(input.value.trim());
+  });
+  salvarCategorias(categorias);
+  alert("✅ Categorias salvas com sucesso!");
+  fecharModal();
+  if (document.getElementById("tesouraria").classList.contains("ativa")) {
+    let titulo = document.getElementById("tituloTes").innerHTML;
+    if (titulo.includes("Receita")) iniciarReceita();
+    else if (titulo.includes("Despesa")) iniciarDespesa();
+  }
+}
+
+function carregarCategoriasSelect(tipo) {
+  let categorias = carregarCategorias();
+  let lista = tipo === 'receitas' ? categorias.receitas : categorias.despesas;
+  let select = document.getElementById("categoria");
+  select.innerHTML = lista.map(cat => `<option>${cat}</option>`).join('');
+  let container = select.parentElement;
+  let btnExistente = document.getElementById("btnGerenciarCategorias");
+  if (!btnExistente) {
+    let btn = document.createElement("button");
+    btn.id = "btnGerenciarCategorias";
+    btn.textContent = "⚙️ Gerenciar";
+    btn.style.cssText = `
+      background: #6c5ce7; color: white; border: none;
+      padding: 8px 15px; border-radius: 8px; cursor: pointer;
+      margin-left: 10px; font-size: 14px;
+    `;
+    btn.onclick = abrirGerenciarCategorias;
+    container.appendChild(btn);
+  }
+}
+// ============================================================
+// FIM DO SISTEMA DE CATEGORIAS
+// ============================================================
 
   // ============================================================
   // INICIALIZAÇÃO
