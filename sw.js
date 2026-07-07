@@ -1,18 +1,50 @@
-const CACHE_NAME = 'igreja-monte-v1';
-const urlsToCache = ['index.html', 'manifest.json'];
+// sw.js - Service Worker para aplicativo offline
 
-self.addEventListener('install', event => {
+const CACHE_NAME = 'monte-app-v1';
+const urlsToCache = [
+  '/app-igreja-monte/',
+  '/app-igreja-monte/index.html',
+  '/app-igreja-monte/manifest.json',
+  '/app-igreja-monte/icon-128x128.png',
+  '/app-igreja-monte/icon-192x192.png',
+  '/app-igreja-monte/icon-256x256.png',
+  '/app-igreja-monte/icon-512x512.png'
+];
+
+// Instala o Service Worker e cacheia os arquivos
+self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(urlsToCache);
+    caches.open(CACHE_NAME)
+      .then(function(cache) {
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+// Ativa o Service Worker
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.map(function(cacheName) {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
     })
   );
 });
 
-self.addEventListener('fetch', event => {
+// Intercepta requisições e busca do cache primeiro
+self.addEventListener('fetch', function(event) {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request)
+      .then(function(response) {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
   );
 });
