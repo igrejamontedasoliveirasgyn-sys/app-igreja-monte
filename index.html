@@ -481,21 +481,55 @@
   }
 
   function iniciarReceita() {
-    indiceEdicao = -1;
-    document.getElementById("tituloTes").innerHTML = "Lançamento de Receita";
-    mostrarCamposLancamento();
-    document.getElementById("categoria").innerHTML = `<option>Dízimo</option><option>Oferta</option><option>Campanha</option><option>Doação</option>`;
-    document.getElementById("labelOrigem").innerHTML = "ONDE O DINHEIRO VAI ENTRAR";
-    let bancos = carregarListaBancos();
-    let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
-    bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
-    document.getElementById("origem").innerHTML = opcoes.join('');
-    document.getElementById("destino").style.display = "none";
-    document.getElementById("labelDestino").style.display = "none";
-    document.getElementById("membro").style.display = "block";
-    limparCampos();
-    carregarHistorico();
-  }
+  indiceEdicao = -1;
+  document.getElementById("tituloTes").innerHTML = "Lançamento de Receita";
+  mostrarCamposLancamento();
+  
+  // CATEGORIAS
+  document.getElementById("categoria").innerHTML = `
+    <option>Dízimo</option>
+    <option>Oferta</option>
+    <option>Campanha</option>
+    <option>Doação</option>
+    <option>Culto da Família</option>
+    <option>Culto de Jovens</option>
+    <option>Escola Dominical</option>
+  `;
+  
+  // ORIGEM (DE ONDE VEM O DINHEIRO)
+  document.getElementById("labelOrigem").innerHTML = "ORIGEM (De onde vem)";
+  let bancos = carregarListaBancos();
+  let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
+  bancos.forEach(function(b) { opcoes.push(`<option>${b}</option>`); });
+  document.getElementById("origem").innerHTML = opcoes.join('');
+  
+  // DESTINO (PARA ONDE VAI) - AGORA VISÍVEL PARA RECEITAS
+  document.getElementById("destino").style.display = "block";
+  document.getElementById("labelDestino").style.display = "block";
+  document.getElementById("labelDestino").innerHTML = "DESTINO (Para onde vai)";
+  document.getElementById("destino").innerHTML = `
+    <option>Selecionar Destino</option>
+    <option>Culto da Família</option>
+    <option>Culto de Jovens</option>
+    <option>Escola Dominical</option>
+    <option>Campanha</option>
+    <option>Fundo Missionário</option>
+  `;
+  
+  // BANCO (QUAL BANCO FOI USADO)
+  document.getElementById("bancoSelect").style.display = "block";
+  document.getElementById("labelBanco").style.display = "block";
+  document.getElementById("labelBanco").innerHTML = "BANCO UTILIZADO";
+  let opcoesBanco = ['<option>Selecionar Banco</option>'];
+  bancos.forEach(function(b) { opcoesBanco.push(`<option>${b}</option>`); });
+  document.getElementById("bancoSelect").innerHTML = opcoesBanco.join('');
+  
+  // MEMBRO
+  document.getElementById("membro").style.display = "block";
+  
+  limparCampos();
+  carregarHistorico();
+}
 
   function iniciarDespesa() {
     indiceEdicao = -1;
@@ -655,19 +689,39 @@ function salvarLancamento() {
 
   let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
   
+  // CAPTURA TODOS OS CAMPOS CORRETAMENTE
+  let tipo = document.getElementById("tituloTes").innerHTML;
+  let categoria = document.getElementById("categoria").value || "";
+  let origem = document.getElementById("origem").value || "";
+  let destino = document.getElementById("destino").value || "";
+  let membro = document.getElementById("membro").value || "";
+  let banco = document.getElementById("bancoSelect") ? document.getElementById("bancoSelect").value : "";
+  let descricao = document.getElementById("descricao").value || "";
+  let valorFormatado = document.getElementById("valor").value;
+
+  // CORREÇÃO: Para receitas, pega o destino corretamente
+  if (tipo.includes("Receita")) {
+    // O destino é o local onde o dinheiro vai (Caixa/Banco)
+    destino = document.getElementById("origem").value || ""; 
+    // A descrição pode ser o culto/evento
+    if (descricao === "") {
+      descricao = categoria; // Usa a categoria como descrição se estiver vazia
+    }
+  }
+
   let novoLancamento = {
-    tipo: document.getElementById("tituloTes").innerHTML,
-    categoria: document.getElementById("categoria").value || "",
-    origem: document.getElementById("origem").value || "",
-    destino: document.getElementById("destino").value || "",
-    membro: document.getElementById("membro").value || "",
-    banco: document.getElementById("bancoSelect") ? document.getElementById("bancoSelect").value : "",
-    descricao: document.getElementById("descricao").value || "",
-    valor: document.getElementById("valor").value,
+    tipo: tipo,
+    categoria: categoria,
+    origem: origem,
+    destino: destino,
+    membro: membro,
+    banco: banco,
+    descricao: descricao,
+    valor: valorFormatado,
     data: new Date().toLocaleString()
   };
 
-  // VERIFICA SE É EDIÇÃO PELO ÍNDICE GLOBAL
+  // SALVA OU ATUALIZA
   if (indiceEdicao !== -1 && indiceEdicao < lancamentos.length) {
     lancamentos[indiceEdicao] = novoLancamento;
     alert("✅ Lançamento atualizado!");
@@ -680,7 +734,7 @@ function salvarLancamento() {
   recalcularFinanceiro();
   carregarHistorico();
   
-  // RESETA TUDO
+  // RESETA CAMPOS
   document.getElementById("descricao").value = "";
   document.getElementById("valor").value = "";
   document.getElementById("btnSalvar").textContent = "Salvar Lançamento";
@@ -822,13 +876,23 @@ function editarLancamento(index) {
       }
       let dataObj = parseDataBR(item.data);
       let dataStr = dataObj ? dataObj.toLocaleDateString('pt-BR') : item.data;
-      let historico = `${item.categoria}`;
-      if (item.descricao) historico += ` - ${item.descricao}`;
-      if (item.membro && item.membro !== "Selecionar Membro") historico += ` (${item.membro})`;
-      if (item.origem && item.origem !== "Selecionar") historico += ` [${item.origem}`;
-      if (item.destino && item.destino !== "Selecionar") historico += ` → ${item.destino}`;
-      if (item.origem && item.origem !== "Selecionar") historico += `]`;
-      if (item.banco) historico += ` - ${item.banco}`;
+// NOVO (CORRETO):
+let historico = `${item.categoria}`;
+if (item.descricao && item.descricao !== item.categoria) {
+  historico += ` - ${item.descricao}`;
+}
+if (item.membro && item.membro !== "Selecionar Membro" && item.membro !== "Selecionar") {
+  historico += ` (${item.membro})`;
+}
+if (item.destino && item.destino !== "Selecionar Destino" && item.destino !== "Selecionar") {
+  historico += ` - ${item.destino}`;
+}
+if (item.banco && item.banco !== "Selecionar Banco" && item.banco !== "Selecionar") {
+  historico += ` - ${item.banco}`;
+}
+if (item.origem && item.origem !== "Selecionar" && item.origem !== "Selecionar Origem") {
+  historico += ` [${item.origem}]`;
+}
       return { data: dataStr, historico, entrada, saida };
     });
 
@@ -995,13 +1059,23 @@ function editarLancamento(index) {
       }
       let dataObj = parseDataBR(item.data);
       let dataStr = dataObj ? dataObj.toLocaleDateString('pt-BR') : item.data;
-      let historico = `${item.categoria}`;
-      if (item.descricao) historico += ` - ${item.descricao}`;
-      if (item.membro && item.membro !== "Selecionar Membro") historico += ` (${item.membro})`;
-      if (item.origem && item.origem !== "Selecionar") historico += ` [${item.origem}`;
-      if (item.destino && item.destino !== "Selecionar") historico += ` → ${item.destino}`;
-      if (item.origem && item.origem !== "Selecionar") historico += `]`;
-      if (item.banco) historico += ` - ${item.banco}`;
+// NOVO (CORRETO):
+let historico = `${item.categoria}`;
+if (item.descricao && item.descricao !== item.categoria) {
+  historico += ` - ${item.descricao}`;
+}
+if (item.membro && item.membro !== "Selecionar Membro" && item.membro !== "Selecionar") {
+  historico += ` (${item.membro})`;
+}
+if (item.destino && item.destino !== "Selecionar Destino" && item.destino !== "Selecionar") {
+  historico += ` - ${item.destino}`;
+}
+if (item.banco && item.banco !== "Selecionar Banco" && item.banco !== "Selecionar") {
+  historico += ` - ${item.banco}`;
+}
+if (item.origem && item.origem !== "Selecionar" && item.origem !== "Selecionar Origem") {
+  historico += ` [${item.origem}]`;
+}
       return { data: dataStr, historico, entrada, saida, saldo: saldoAcumulado };
     });
 
