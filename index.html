@@ -654,41 +654,38 @@ function salvarLancamento() {
   }
 
   let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
-  let bancoValor = "";
-  if (document.getElementById("tituloTes").innerHTML.includes("Depósito")) {
-    bancoValor = document.getElementById("bancoSelect").value;
-  }
-
+  
   let novoLancamento = {
     tipo: document.getElementById("tituloTes").innerHTML,
     categoria: document.getElementById("categoria").value || "",
     origem: document.getElementById("origem").value || "",
     destino: document.getElementById("destino").value || "",
     membro: document.getElementById("membro").value || "",
-    banco: bancoValor,
+    banco: document.getElementById("bancoSelect") ? document.getElementById("bancoSelect").value : "",
     descricao: document.getElementById("descricao").value || "",
     valor: document.getElementById("valor").value,
     data: new Date().toLocaleString()
   };
 
-  // CORREÇÃO: Verifica se é edição
+  // VERIFICA SE É EDIÇÃO PELO ÍNDICE GLOBAL
   if (indiceEdicao !== -1 && indiceEdicao < lancamentos.length) {
-    // ATUALIZA o lançamento existente (NÃO cria novo)
     lancamentos[indiceEdicao] = novoLancamento;
-    alert("Lançamento atualizado com sucesso!");
+    alert("✅ Lançamento atualizado!");
   } else {
-    // Adiciona NOVO lançamento
     lancamentos.push(novoLancamento);
-    alert("Lançamento salvo com sucesso!");
+    alert("✅ Lançamento salvo!");
   }
 
   localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
   recalcularFinanceiro();
   carregarHistorico();
-  limparCampos();
-  indiceEdicao = -1; // RESETA após salvar
+  
+  // RESETA TUDO
+  document.getElementById("descricao").value = "";
+  document.getElementById("valor").value = "";
+  document.getElementById("btnSalvar").textContent = "Salvar Lançamento";
+  indiceEdicao = -1;
 }
-
   function carregarHistorico() {
     let historico = document.getElementById("historico");
     let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
@@ -722,37 +719,40 @@ function salvarLancamento() {
   }
 
   // CORREÇÃO PRINCIPAL - EDITAR LANÇAMENTO
-  function editarLancamento(index) {
+function editarLancamento(index) {
   let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
   let item = lancamentos[index];
-  indiceEdicao = index; // GUARDA O ÍNDICE CORRETO
-
-  // Abre o formulário correto
-  if (item.tipo.includes("Receita")) { 
-    iniciarReceita(); 
-  } else if (item.tipo.includes("Despesa")) { 
-    iniciarDespesa(); 
-  } else if (item.tipo.includes("Transferência")) { 
-    iniciarTransferencia(); 
-  } else if (item.tipo.includes("Depósito")) { 
-    iniciarDeposito(); 
+  
+  // GUARDA O ÍNDICE GLOBAL
+  indiceEdicao = index;
+  
+  // PREENCHE OS CAMPOS DIRETAMENTE, SEM RECRIAR O FORMULÁRIO
+  document.getElementById("tituloTes").innerHTML = item.tipo;
+  
+  // Mostra todos os campos
+  document.getElementById("categoria").style.display = "block";
+  document.getElementById("membro").style.display = "block";
+  document.getElementById("origem").style.display = "block";
+  document.getElementById("destino").style.display = "block";
+  document.getElementById("descricao").style.display = "block";
+  document.getElementById("valor").style.display = "block";
+  document.getElementById("btnSalvar").style.display = "block";
+  document.getElementById("conteudo-relatorio").style.display = "none";
+  document.getElementById("historico").style.display = "block";
+  
+  // PREENCHE OS VALORES
+  document.getElementById("categoria").value = item.categoria || "Selecionar Categoria";
+  document.getElementById("origem").value = item.origem || "Selecionar Origem";
+  document.getElementById("destino").value = item.destino || "Selecionar Destino";
+  document.getElementById("membro").value = item.membro || "Selecionar Membro";
+  if (document.getElementById("bancoSelect")) {
+    document.getElementById("bancoSelect").value = item.banco || "Selecionar Banco";
   }
-
-  // Preenche os campos (COM O ÍNDICE PRESERVADO)
-  setTimeout(function() {
-    document.getElementById("categoria").value = item.categoria || "Selecionar Categoria";
-    document.getElementById("origem").value = item.origem || "Selecionar Origem";
-    document.getElementById("destino").value = item.destino || "Selecionar Destino";
-    document.getElementById("membro").value = item.membro || "Selecionar Membro";
-    if (document.getElementById("bancoSelect")) {
-      document.getElementById("bancoSelect").value = item.banco || "Selecionar Banco";
-    }
-    document.getElementById("descricao").value = item.descricao || "";
-    document.getElementById("valor").value = item.valor || "";
-    
-    document.getElementById("btnSalvar").textContent = "Atualizar Lançamento";
-    document.getElementById("tesouraria").scrollIntoView({ behavior: "smooth" });
-  }, 200);
+  document.getElementById("descricao").value = item.descricao || "";
+  document.getElementById("valor").value = item.valor || "";
+  
+  document.getElementById("btnSalvar").textContent = "🔄 Atualizar Lançamento";
+  document.getElementById("tesouraria").scrollIntoView({ behavior: "smooth" });
 }
   // ============================================================
   // RELATÓRIOS - CORRIGIDO
@@ -1118,19 +1118,44 @@ function salvarLancamento() {
 
   function editarMembro(index) {
   let m = membrosSec[index];
+  
+  // ABRE A TELA DE MEMBROS
+  document.getElementById("tituloSec").innerText = "✏️ Editando Membro";
+  document.getElementById("conteudoSec").innerHTML = `
+    <input id="nomeM" placeholder="Nome" value="${m.nome}">
+    <input id="telefone" placeholder="Telefone" value="${m.telefone || ''}">
+    <input id="endereco" placeholder="Endereço" value="${m.endereco || ''}">
+    <select id="cargoM">
+      <option ${m.cargo === 'Membro' ? 'selected' : ''}>Membro</option>
+      <option ${m.cargo === 'Membra' ? 'selected' : ''}>Membra</option>
+    </select>
+    <select id="situacaoM">
+      <option ${m.situacao === 'Ativo' ? 'selected' : ''}>Ativo</option>
+      <option ${m.situacao === 'Inativo' ? 'selected' : ''}>Inativo</option>
+    </select>
+    <button class="salvar" onclick="salvarEdicaoMembro(${index})">💾 Salvar Edição</button>
+    <button onclick="abrirMembros()" style="margin-top:10px; padding:10px; background:#ccc; border:none; border-radius:8px; cursor:pointer;">↩ Cancelar</button>
+    <div id="listaMembros"></div>
+  `;
+  renderMembros();
+}
+
+// NOVA FUNÇÃO PARA SALVAR EDIÇÃO DE MEMBRO
+function salvarEdicaoMembro(index) {
+  let nome = document.getElementById("nomeM").value;
+  if (!nome) { alert("Digite o nome"); return; }
+  
+  membrosSec[index] = {
+    nome: nome,
+    telefone: document.getElementById("telefone").value,
+    endereco: document.getElementById("endereco").value,
+    cargo: document.getElementById("cargoM").value,
+    situacao: document.getElementById("situacaoM").value
+  };
+  
+  localStorage.setItem("membros", JSON.stringify(membrosSec));
+  alert("✅ Membro atualizado!");
   abrirMembros();
-  setTimeout(() => {
-    document.getElementById("nomeM").value = m.nome;
-    document.getElementById("telefone").value = m.telefone;
-    document.getElementById("endereco").value = m.endereco;
-    document.getElementById("cargoM").value = m.cargo;
-    document.getElementById("situacaoM").value = m.situacao;
-    
-    // CORREÇÃO: Remove APENAS depois de preencher
-    membrosSec.splice(index, 1);
-    localStorage.setItem("membros", JSON.stringify(membrosSec));
-    renderMembros();
-  }, 100);
 }
 
   function abrirDocumentos() {
@@ -1307,16 +1332,47 @@ function salvarLancamento() {
 
   function editarLideranca(index) {
   let l = lideranca[index];
+  
+  document.getElementById("tituloSec").innerText = "✏️ Editando Liderança";
+  document.getElementById("conteudoSec").innerHTML = `
+    <input id="nomeLider" placeholder="Nome" value="${l.nome}">
+    <select id="cargoLider">
+      <option ${l.cargo === 'Pastor Presidente' ? 'selected' : ''}>Pastor Presidente</option>
+      <option ${l.cargo === 'Pastora Presidente' ? 'selected' : ''}>Pastora Presidente</option>
+      <option ${l.cargo === 'Tesoureiro' ? 'selected' : ''}>Tesoureiro</option>
+      <option ${l.cargo === 'Tesoureira' ? 'selected' : ''}>Tesoureira</option>
+      <option ${l.cargo === 'Secretário' ? 'selected' : ''}>Secretário</option>
+      <option ${l.cargo === 'Secretária' ? 'selected' : ''}>Secretária</option>
+      <option ${l.cargo === 'Diácono' ? 'selected' : ''}>Diácono</option>
+      <option ${l.cargo === 'Diaconisa' ? 'selected' : ''}>Diaconisa</option>
+      <option ${l.cargo === 'Presbítero' ? 'selected' : ''}>Presbítero</option>
+      <option ${l.cargo === 'Presbítera' ? 'selected' : ''}>Presbítera</option>
+      <option ${l.cargo === 'Evangelista' ? 'selected' : ''}>Evangelista</option>
+      <option ${l.cargo === 'Missionário' ? 'selected' : ''}>Missionário</option>
+      <option ${l.cargo === 'Missionária' ? 'selected' : ''}>Missionária</option>
+      <option ${l.cargo === 'Pastor' ? 'selected' : ''}>Pastor</option>
+      <option ${l.cargo === 'Pastora' ? 'selected' : ''}>Pastora</option>
+    </select>
+    <button class="salvar" onclick="salvarEdicaoLideranca(${index})">💾 Salvar Edição</button>
+    <button onclick="abrirLideranca()" style="margin-top:10px; padding:10px; background:#ccc; border:none; border-radius:8px; cursor:pointer;">↩ Cancelar</button>
+    <div id="listaLider"></div>
+  `;
+  renderLideranca();
+}
+
+// NOVA FUNÇÃO PARA SALVAR EDIÇÃO DE LIDERANÇA
+function salvarEdicaoLideranca(index) {
+  let nome = document.getElementById("nomeLider").value;
+  if (!nome) { alert("Digite o nome"); return; }
+  
+  lideranca[index] = {
+    nome: nome,
+    cargo: document.getElementById("cargoLider").value
+  };
+  
+  localStorage.setItem("lideranca", JSON.stringify(lideranca));
+  alert("✅ Liderança atualizada!");
   abrirLideranca();
-  setTimeout(() => {
-    document.getElementById("nomeLider").value = l.nome;
-    document.getElementById("cargoLider").value = l.cargo;
-    
-    // CORREÇÃO: Remove APENAS depois de preencher
-    lideranca.splice(index, 1);
-    localStorage.setItem("lideranca", JSON.stringify(lideranca));
-    renderLideranca();
-  }, 100);
 }
   function abrirRelatoriosSec() {
     document.getElementById("tituloSec").innerText = "Relatórios";
