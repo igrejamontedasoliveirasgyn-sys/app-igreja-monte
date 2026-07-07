@@ -457,12 +457,12 @@
   }
 
   function limparCampos() {
-    document.getElementById("descricao").value = "";
-    document.getElementById("valor").value = "";
-    document.getElementById("bancoSelect").value = "";
-    document.getElementById("btnSalvar").textContent = "Salvar Lançamento";
-    indiceEdicao = -1;
-  }
+  document.getElementById("descricao").value = "";
+  document.getElementById("valor").value = "";
+  document.getElementById("bancoSelect").value = "Selecionar Banco";
+  document.getElementById("btnSalvar").textContent = "Salvar Lançamento";
+  indiceEdicao = -1; // RESETA O ÍNDICE
+}
 
   function mostrarCamposLancamento() {
     document.getElementById("conteudo-relatorio").style.display = "none";
@@ -643,50 +643,51 @@
   }
 
   // CORREÇÃO PRINCIPAL - SALVAR LANÇAMENTO
-  function salvarLancamento() {
-    let valorTexto = document.getElementById("valor").value;
-    valorTexto = valorTexto.replace(/\./g, '').replace(',', '.');
-    let valor = parseFloat(valorTexto);
-    
-    if (isNaN(valor) || valor <= 0) {
-      alert("Digite um valor válido (maior que zero)!");
-      return;
-    }
-
-    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
-    let bancoValor = "";
-    if (document.getElementById("tituloTes").innerHTML.includes("Depósito")) {
-      bancoValor = document.getElementById("bancoSelect").value;
-    }
-
-    let novoLancamento = {
-      tipo: document.getElementById("tituloTes").innerHTML,
-      categoria: document.getElementById("categoria").value || "",
-      origem: document.getElementById("origem").value || "",
-      destino: document.getElementById("destino").value || "",
-      membro: document.getElementById("membro").value || "",
-      banco: bancoValor,
-      descricao: document.getElementById("descricao").value || "",
-      valor: document.getElementById("valor").value,
-      data: new Date().toLocaleString()
-    };
-
-    // CORREÇÃO: Verifica se é edição ou novo lançamento
-    if (indiceEdicao !== -1 && indiceEdicao < lancamentos.length) {
-      // Atualiza o lançamento existente
-      lancamentos[indiceEdicao] = novoLancamento;
-      alert("Lançamento atualizado com sucesso!");
-    } else {
-      // Adiciona novo lançamento
-      lancamentos.push(novoLancamento);
-      alert("Lançamento salvo com sucesso!");
-    }
-
-    localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
-    recalcularFinanceiro();
-    carregarHistorico();
-    limparCampos();
+function salvarLancamento() {
+  let valorTexto = document.getElementById("valor").value;
+  valorTexto = valorTexto.replace(/\./g, '').replace(',', '.');
+  let valor = parseFloat(valorTexto);
+  
+  if (isNaN(valor) || valor <= 0) {
+    alert("Digite um valor válido (maior que zero)!");
+    return;
   }
+
+  let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+  let bancoValor = "";
+  if (document.getElementById("tituloTes").innerHTML.includes("Depósito")) {
+    bancoValor = document.getElementById("bancoSelect").value;
+  }
+
+  let novoLancamento = {
+    tipo: document.getElementById("tituloTes").innerHTML,
+    categoria: document.getElementById("categoria").value || "",
+    origem: document.getElementById("origem").value || "",
+    destino: document.getElementById("destino").value || "",
+    membro: document.getElementById("membro").value || "",
+    banco: bancoValor,
+    descricao: document.getElementById("descricao").value || "",
+    valor: document.getElementById("valor").value,
+    data: new Date().toLocaleString()
+  };
+
+  // CORREÇÃO: Verifica se é edição
+  if (indiceEdicao !== -1 && indiceEdicao < lancamentos.length) {
+    // ATUALIZA o lançamento existente (NÃO cria novo)
+    lancamentos[indiceEdicao] = novoLancamento;
+    alert("Lançamento atualizado com sucesso!");
+  } else {
+    // Adiciona NOVO lançamento
+    lancamentos.push(novoLancamento);
+    alert("Lançamento salvo com sucesso!");
+  }
+
+  localStorage.setItem("lancamentos", JSON.stringify(lancamentos));
+  recalcularFinanceiro();
+  carregarHistorico();
+  limparCampos();
+  indiceEdicao = -1; // RESETA após salvar
+}
 
   function carregarHistorico() {
     let historico = document.getElementById("historico");
@@ -722,40 +723,37 @@
 
   // CORREÇÃO PRINCIPAL - EDITAR LANÇAMENTO
   function editarLancamento(index) {
-    let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
-    let item = lancamentos[index];
-    indiceEdicao = index;
+  let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
+  let item = lancamentos[index];
+  indiceEdicao = index; // GUARDA O ÍNDICE CORRETO
 
-    // Determina o tipo e abre
-    if (item.tipo.includes("Receita")) { 
-      iniciarReceita(); 
-    } else if (item.tipo.includes("Despesa")) { 
-      iniciarDespesa(); 
-    } else if (item.tipo.includes("Transferência")) { 
-      iniciarTransferencia(); 
-    } else if (item.tipo.includes("Depósito")) { 
-      iniciarDeposito(); 
-    }
-
-    // Preenche os campos com os dados
-    setTimeout(function() {
-      document.getElementById("categoria").value = item.categoria || "Selecionar Categoria";
-      document.getElementById("origem").value = item.origem || "Selecionar Origem";
-      document.getElementById("destino").value = item.destino || "Selecionar Destino";
-      document.getElementById("membro").value = item.membro || "Selecionar Membro";
-      if (document.getElementById("bancoSelect")) {
-        document.getElementById("bancoSelect").value = item.banco || "Selecionar Banco";
-      }
-      document.getElementById("descricao").value = item.descricao || "";
-      document.getElementById("valor").value = item.valor || "";
-      
-      // Muda o texto do botão
-      document.getElementById("btnSalvar").textContent = "Atualizar Lançamento";
-      
-      document.getElementById("tesouraria").scrollIntoView({ behavior: "smooth" });
-    }, 200);
+  // Abre o formulário correto
+  if (item.tipo.includes("Receita")) { 
+    iniciarReceita(); 
+  } else if (item.tipo.includes("Despesa")) { 
+    iniciarDespesa(); 
+  } else if (item.tipo.includes("Transferência")) { 
+    iniciarTransferencia(); 
+  } else if (item.tipo.includes("Depósito")) { 
+    iniciarDeposito(); 
   }
 
+  // Preenche os campos (COM O ÍNDICE PRESERVADO)
+  setTimeout(function() {
+    document.getElementById("categoria").value = item.categoria || "Selecionar Categoria";
+    document.getElementById("origem").value = item.origem || "Selecionar Origem";
+    document.getElementById("destino").value = item.destino || "Selecionar Destino";
+    document.getElementById("membro").value = item.membro || "Selecionar Membro";
+    if (document.getElementById("bancoSelect")) {
+      document.getElementById("bancoSelect").value = item.banco || "Selecionar Banco";
+    }
+    document.getElementById("descricao").value = item.descricao || "";
+    document.getElementById("valor").value = item.valor || "";
+    
+    document.getElementById("btnSalvar").textContent = "Atualizar Lançamento";
+    document.getElementById("tesouraria").scrollIntoView({ behavior: "smooth" });
+  }, 200);
+}
   // ============================================================
   // RELATÓRIOS - CORRIGIDO
   // ============================================================
@@ -1119,19 +1117,21 @@
   }
 
   function editarMembro(index) {
-    let m = membrosSec[index];
-    abrirMembros();
-    setTimeout(() => {
-      document.getElementById("nomeM").value = m.nome;
-      document.getElementById("telefone").value = m.telefone;
-      document.getElementById("endereco").value = m.endereco;
-      document.getElementById("cargoM").value = m.cargo;
-      document.getElementById("situacaoM").value = m.situacao;
-      membrosSec.splice(index, 1);
-      localStorage.setItem("membros", JSON.stringify(membrosSec));
-      renderMembros();
-    }, 100);
-  }
+  let m = membrosSec[index];
+  abrirMembros();
+  setTimeout(() => {
+    document.getElementById("nomeM").value = m.nome;
+    document.getElementById("telefone").value = m.telefone;
+    document.getElementById("endereco").value = m.endereco;
+    document.getElementById("cargoM").value = m.cargo;
+    document.getElementById("situacaoM").value = m.situacao;
+    
+    // CORREÇÃO: Remove APENAS depois de preencher
+    membrosSec.splice(index, 1);
+    localStorage.setItem("membros", JSON.stringify(membrosSec));
+    renderMembros();
+  }, 100);
+}
 
   function abrirDocumentos() {
     document.getElementById("tituloSec").innerText = "Documentos da Igreja";
@@ -1306,17 +1306,18 @@
   }
 
   function editarLideranca(index) {
-    let l = lideranca[index];
-    abrirLideranca();
-    setTimeout(() => {
-      document.getElementById("nomeLider").value = l.nome;
-      document.getElementById("cargoLider").value = l.cargo;
-      lideranca.splice(index, 1);
-      localStorage.setItem("lideranca", JSON.stringify(lideranca));
-      renderLideranca();
-    }, 100);
-  }
-
+  let l = lideranca[index];
+  abrirLideranca();
+  setTimeout(() => {
+    document.getElementById("nomeLider").value = l.nome;
+    document.getElementById("cargoLider").value = l.cargo;
+    
+    // CORREÇÃO: Remove APENAS depois de preencher
+    lideranca.splice(index, 1);
+    localStorage.setItem("lideranca", JSON.stringify(lideranca));
+    renderLideranca();
+  }, 100);
+}
   function abrirRelatoriosSec() {
     document.getElementById("tituloSec").innerText = "Relatórios";
     let relatorio = "<h3>Membros</h3>";
