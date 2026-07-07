@@ -2,7 +2,7 @@
   "name": "Igreja Monte das Oliveiras",
   "short_name": "Igreja Monte",
   "description": "Sistema da Igreja Pentecostal Monte das Oliveiras",
-  "start_url": "/index.html",
+  "start_url": "https://igrejamontedasoliveirasgyn-sys.github.io/app-igreja-monte/index.html"
   "display": "standalone",
   "background_color": "#f1f5f9",
   "theme_color": "#0f172a",
