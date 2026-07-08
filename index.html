@@ -1024,11 +1024,18 @@ if (item.origem && item.origem !== "Selecionar" && item.origem !== "Selecionar O
 
     document.getElementById("relatorioContainer").innerHTML = html;
 
-    const btn = document.createElement("button");
-    btn.className = "btn-imprimir";
-    btn.textContent = "🖨 Imprimir / PDF";
-    btn.onclick = function() { window.print(); };
-    document.getElementById("relatorioContainer").appendChild(btn);
+    // Remove botão antigo se existir
+let btnAntigo = document.querySelector("#relatorioContainer .btn-imprimir");
+if (btnAntigo) btnAntigo.remove();
+
+// Adiciona botão novo
+const btn = document.createElement("button");
+btn.className = "btn-imprimir";
+btn.textContent = "🖨 Imprimir / PDF";
+btn.onclick = function() { 
+  window.print(); 
+};
+document.getElementById("relatorioContainer").appendChild(btn);
   }
 
   function gerarRelacaoPeriodo() {
