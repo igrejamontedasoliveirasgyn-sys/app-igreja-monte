@@ -1,4 +1,4 @@
-// sw.js - Service Worker para aplicativo offline
+// sw.js - Service Worker
 
 const CACHE_NAME = 'monte-app-v1';
 const urlsToCache = [
@@ -11,17 +11,19 @@ const urlsToCache = [
   '/app-igreja-monte/icon-512x512.png'
 ];
 
-// Instala o Service Worker e cacheia os arquivos
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
+        console.log('✅ Cache aberto');
         return cache.addAll(urlsToCache);
+      })
+      .catch(function(err) {
+        console.log('❌ Erro ao cachear:', err);
       })
   );
 });
 
-// Ativa o Service Worker
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(cacheNames) {
@@ -36,15 +38,11 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-// Intercepta requisições e busca do cache primeiro
 self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request)
       .then(function(response) {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
+        return response || fetch(event.request);
       })
   );
 });
