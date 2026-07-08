@@ -856,6 +856,13 @@ function editarLancamento(index) {
 
     let lancamentos = JSON.parse(localStorage.getItem("lancamentos")) || [];
 
+    // VERIFICA SE EXISTEM LANÇAMENTOS
+if (lancamentos.length === 0) {
+  document.getElementById("relatorioContainer").innerHTML = 
+    `<p style="text-align:center; color:#999;">Nenhum lançamento encontrado. Cadastre algumas receitas ou despesas primeiro.</p>`;
+  return;
+}
+
     let lancamentosMes = lancamentos.filter(item => {
       let data = parseDataBR(item.data);
       if (!data) return false;
