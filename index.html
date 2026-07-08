@@ -1611,6 +1611,19 @@ function carregarCategoriasSelect(tipo) {
 // ============================================================
 // FIM DO SISTEMA DE CATEGORIAS
 // ============================================================
+  // ============================================================
+// REGISTRA O SERVICE WORKER
+// ============================================================
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/app-igreja-monte/sw.js')
+    .then(function(registration) {
+      console.log('✅ Service Worker registrado!');
+    })
+    .catch(function(error) {
+      console.log('❌ Erro ao registrar Service Worker:', error);
+    });
+}
 
   // ============================================================
   // INICIALIZAÇÃO
