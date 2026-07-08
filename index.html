@@ -1568,8 +1568,12 @@ function fecharModal() {
 
 function adicionarCategoria(tipo) {
   let categorias = carregarCategorias();
-  categorias[tipo].push("Nova Categoria");
-  salvarCategorias(categorias);
+
+  if (!categorias[tipo].includes("Nova Categoria")) {
+    categorias[tipo].push("Nova Categoria");
+    salvarCategorias(categorias);
+  }
+
   abrirGerenciarCategorias();
 }
 
