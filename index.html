@@ -896,7 +896,8 @@ function editarLancamento(index) {
       let dataObj = parseDataBR(item.data);
       let dataStr = dataObj ? dataObj.toLocaleDateString('pt-BR') : item.data;
 // NOVO (CORRETO):
-let historico = `${item.categoria}`;
+// Substitua a parte que monta o histórico por este código:
+let historico = `${item.categoria || ''}`;
 if (item.descricao && item.descricao !== item.categoria) {
   historico += ` - ${item.descricao}`;
 }
@@ -1079,7 +1080,8 @@ if (item.origem && item.origem !== "Selecionar" && item.origem !== "Selecionar O
       let dataObj = parseDataBR(item.data);
       let dataStr = dataObj ? dataObj.toLocaleDateString('pt-BR') : item.data;
 // NOVO (CORRETO):
-let historico = `${item.categoria}`;
+// Substitua a parte que monta o histórico por este código:
+let historico = `${item.categoria || ''}`;
 if (item.descricao && item.descricao !== item.categoria) {
   historico += ` - ${item.descricao}`;
 }
@@ -1591,8 +1593,14 @@ function salvarCategoriasModal() {
 function carregarCategoriasSelect(tipo) {
   let categorias = carregarCategorias();
   let lista = tipo === 'receitas' ? categorias.receitas : categorias.despesas;
+  
+  // Remove duplicatas
+  let listaUnica = [...new Set(lista)];
+  
   let select = document.getElementById("categoria");
-  select.innerHTML = lista.map(cat => `<option>${cat}</option>`).join('');
+  select.innerHTML = listaUnica.map(cat => `<option>${cat}</option>`).join('');
+  
+  // Adiciona botão "Gerenciar" apenas se não existir
   let container = select.parentElement;
   let btnExistente = document.getElementById("btnGerenciarCategorias");
   if (!btnExistente) {
