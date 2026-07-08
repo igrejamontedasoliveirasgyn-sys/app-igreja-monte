@@ -2,29 +2,29 @@
   "name": "Igreja Monte das Oliveiras",
   "short_name": "Igreja Monte",
   "description": "Sistema da Igreja Pentecostal Monte das Oliveiras",
-  "start_url": "https://igrejamontedasoliveirasgyn-sys.github.io/app-igreja-monte/index.html"
+  "start_url": "/app-igreja-monte/index.html",
   "display": "standalone",
   "background_color": "#f1f5f9",
   "theme_color": "#0f172a",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-128x128.png",
+      "src": "/app-igreja-monte/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "icon-192x192.png",
+      "src": "/app-igreja-monte/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-256x256.png",
+      "src": "/app-igreja-monte/icon-256x256.png",
       "sizes": "256x256",
       "type": "image/png"
     },
     {
-      "src": "icon-512x512.png",
+      "src": "/app-igreja-monte/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
