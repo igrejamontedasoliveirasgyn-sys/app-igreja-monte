@@ -720,25 +720,24 @@ function salvarLancamento() {
 
   // CORREÇÃO: Para receitas, pega o destino corretamente
   if (tipo.includes("Receita")) {
-    // O destino é o local onde o dinheiro vai (Caixa/Banco)
-    destino = document.getElementById("origem").value || ""; 
-    // A descrição pode ser o culto/evento
-    if (descricao === "") {
-      descricao = categoria; // Usa a categoria como descrição se estiver vazia
-    }
-  }
+    origem = document.getElementById("origem").value || "";
+    destino = document.getElementById("destino").value || "";
 
+    if (descricao.trim() === "") {
+        descricao = categoria;
+    }
+}
   let novoLancamento = {
-    tipo: tipo,
-    categoria: categoria,
-    origem: origem,
-    destino: destino,
-    membro: membro,
-    banco: banco,
-    descricao: descricao,
+    tipo,
+    categoria,
+    origem,
+    destino,
+    membro,
+    banco,
+    descricao,
     valor: valorFormatado,
-    data: new Date().toLocaleString()
-  };
+    data: new Date().toLocaleString("pt-BR")
+};
 
   // SALVA OU ATUALIZA
   if (indiceEdicao !== -1 && indiceEdicao < lancamentos.length) {
