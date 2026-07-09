@@ -1293,84 +1293,70 @@ function salvarEdicaoMembro(index) {
     });
   }
 
-  function gerarDocumento() {
-    let tipo = document.getElementById("tipoDoc").value;
-    let nome = document.getElementById("nomeDoc").value;
-    let noivo = document.getElementById("noivo") ? document.getElementById("noivo").value : "";
-    let noiva = document.getElementById("noiva") ? document.getElementById("noiva").value : "";
-    let data = document.getElementById("dataDoc").value;
-    let igreja = "IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS";
+  function imprimirDocumento() {
+    let conteudo = document.getElementById("docContainer").innerHTML;
+    let tela = window.open('', '', 'width=900,height=700');
+    tela.document.write(`
+      <html><head><title>Documento Igreja</title>
+      <style>
+        @page { size: A4 portrait; margin: 0; }
+        html, body { width: 210mm; min-height: 297mm; margin: 0; padding: 0; background: white; font-family: 'Times New Roman'; }
+        button { display: none; }
+      </style>
+      </head><body>${conteudo}</body></html>
+    `);
+    tela.document.close();
+    setTimeout(() => { tela.print(); }, 500);
+  }
 
-    let presidente = lideranca.find(l => l.cargo === "Pastor Presidente" || l.cargo === "Pastora Presidente");
-    let secretario = lideranca.find(l => l.cargo === "Secretário" || l.cargo === "Secretária");
-    let nomePresidente = presidente ? presidente.nome : "";
-    let cargoPresidente = presidente ? presidente.cargo : "Pastor Presidente";
-    let nomeSecretario = secretario ? secretario.nome : "";
-    let cargoSecretario = secretario ? secretario.cargo : "Secretário(a)";
-
-    function modeloDocumento(titulo, texto1, versiculo, frase) {
-      return `
-        <div style="width:190mm; min-height:277mm; margin:10mm auto; padding:8mm; box-sizing:border-box; font-family:'Times New Roman'; background:white; line-height:1.5; border:4px double #000; text-align:center;">
-          <h2 style="font-size:28px;">${igreja}</h2>
-          <p style="font-size:18px;">"Pregando o Evangelho do Reino"</p>
-          <h1 style="font-size:36px;">${titulo}</h1>
-          <p style="font-size:22px;">${texto1}</p>
-          <h1 style="font-size:38px; text-transform:uppercase;">${nome}</h1>
-          <p style="font-size:22px;">${frase}</p>
-          <p style="font-size:18px; margin-top:15px; font-style:italic;">${versiculo}</p>
-          <p style="font-size:18px;">Goiânia/GO, ${new Date(data).toLocaleDateString('pt-BR')}</p>
-          <div style="display:flex; justify-content:space-between; margin-top:70px; font-size:18px;">
-            <div>${nomePresidente}<br>${cargoPresidente}</div>
-            <div>${nomeSecretario}<br>${cargoSecretario}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    let texto = "";
-    if (tipo === "Carta") {
-      texto = modeloDocumento(
-        "CARTA DE APRESENTAÇÃO",
-        "Esta igreja recomenda à amada igreja o(a) irmão(ã)",
-        "Mateus 10:7 — E, indo, pregai, dizendo: É chegado o Reino dos céus.",
-        "o(a) qual se encontra em plena comunhão com este ministério, tendo testemunho cristão digno, conduta ilibada e compromisso com a obra de Deus. Rogamos que o(a) recebam na paz do Senhor Jesus para cooperar e congregar conforme a direção pastoral."
-      );
-    } else if (tipo === "Batismo") {
-      texto = modeloDocumento(
-        "CERTIFICADO DE BATISMO",
-        "Certificamos para os devidos fins que o(a) irmão(ã)",
-        "Mateus 28:19 — Portanto ide, fazei discípulos de todas as nações, batizando-os em nome do Pai, e do Filho, e do Espírito Santo.",
-        "desceu às águas batismais conforme os ensinamentos bíblicos, sendo batizado(a) em nome do Pai, do Filho e do Espírito Santo, testemunhando publicamente sua fé em Jesus Cristo como Senhor e Salvador."
-      );
-    } else if (tipo === "Criança") {
-      texto = modeloDocumento(
-        "CERTIFICADO DE APRESENTAÇÃO",
-        "Certificamos para os devidos fins que a criança",
-        "Marcos 10:14 — Deixai vir a mim os pequeninos e não os impeçais, porque dos tais é o Reino de Deus.",
-        "foi apresentada ao Senhor nesta igreja, recebendo oração, consagração e bênção pastoral diante da congregação, conforme os ensinamentos da Palavra de Deus."
-      );
-    } else if (tipo === "Casamento") {
-      texto = `
-        <div style="width:190mm; min-height:277mm; margin:10mm auto; padding:8mm; box-sizing:border-box; font-family:'Times New Roman'; background:white; line-height:1.6; border:4px double #000; text-align:center;">
-          <h2 style="font-size:28px;">${igreja}</h2>
-          <p style="font-size:18px;">"O que Deus uniu, não o separe o homem."</p>
-          <h1 style="font-size:34px;">CERTIFICADO DE CASAMENTO</h1>
-          <h1 style="font-size:32px; line-height:1.4;">${noivo}<br>&<br>${noiva}</h1>
-          <p style="font-size:22px;">receberam a bênção matrimonial nesta igreja, assumindo aliança diante de Deus e da congregação, comprometendo-se em viver em união, fidelidade e amor, conforme os ensinamentos da Palavra do Senhor.</p>
-          <p style="font-size:18px; font-style:italic;">Gênesis 2:24 — Portanto deixará o homem o seu pai e a sua mãe, e apegar-se-á à sua mulher, e serão ambos uma carne.</p>
-          <p style="font-size:18px;">Goiânia/GO, ${new Date(data).toLocaleDateString('pt-BR')}</p>
-          <div style="display:flex; justify-content:space-between; margin-top:20px; font-size:18px;">
-            <div>${nomePresidente}<br>${cargoPresidente}</div>
-            <div>${nomeSecretario}<br>${cargoSecretario}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    document.getElementById("docContainer").innerHTML = `
-      <button class="btn-imprimir" onclick="imprimirDocumento()">🖨 Imprimir / Baixar PDF</button>
-      ${texto}
+  function abrirLideranca() {
+    document.getElementById("tituloSec").innerText = "Liderança da Igreja";
+    document.getElementById("conteudoSec").innerHTML = `
+      <input id="nomeLider" placeholder="Nome">
+      <select id="cargoLider">
+        <option>Pastor Presidente</option><option>Pastora Presidente</option>
+        <option>Tesoureiro</option><option>Tesoureira</option>
+        <option>Secretário</option><option>Secretária</option>
+        <option>Diácono</option><option>Diaconisa</option>
+        <option>Presbítero</option><option>Presbítera</option>
+        <option>Evangelista</option>
+        <option>Missionário</option><option>Missionária</option>
+        <option>Pastor</option><option>Pastora</option>
+      </select>
+      <button class="salvar" onclick="salvarLideranca()">Salvar Liderança</button>
+      <div id="listaLider"></div>
     `;
+    renderLideranca();
+  }
+
+  function salvarLideranca() {
+    let nome = document.getElementById("nomeLider").value;
+    let cargo = document.getElementById("cargoLider").value;
+    if (!nome) { alert("Digite o nome"); return; }
+    lideranca.push({ nome, cargo });
+    localStorage.setItem("lideranca", JSON.stringify(lideranca));
+    abrirLideranca();
+  }
+
+  function renderLideranca() {
+    let box = document.getElementById("listaLider");
+    if (!box) return;
+    box.innerHTML = "";
+    lideranca.forEach((l, index) => {
+      box.innerHTML += `
+        <div class="item-sec">
+          <b>${l.nome}</b><br>${l.cargo}<br><br>
+          <button onclick="editarLideranca(${index})">Editar</button>
+          <button onclick="excluirLideranca(${index})">Excluir</button>
+        </div>
+      `;
+    });
+  }
+
+  function excluirLideranca(index) {
+    lideranca.splice(index, 1);
+    localStorage.setItem("lideranca", JSON.stringify(lideranca));
+    renderLideranca();
   }
 
   function imprimirDocumento() {
@@ -1636,22 +1622,9 @@ function carregarCategoriasSelect(tipo) {
 }
 // ============================================================
 // FIM DO SISTEMA DE CATEGORIAS
-// ============================================================
+// 
   // ============================================================
-// REGISTRA O SERVICE WORKER
-// ============================================================
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/app-igreja-monte/sw.js')
-    .then(function(registration) {
-      console.log('✅ Service Worker registrado!');
-    })
-    .catch(function(error) {
-      console.log('❌ Erro ao registrar Service Worker:', error);
-    });
-}
-
-  // ============================================================
+ // ============================================================
   // INICIALIZAÇÃO
   // ============================================================
   window.onload = function() {
