@@ -801,6 +801,11 @@ function editarLancamento(index) {
   
   // PREENCHE OS CAMPOS DIRETAMENTE, SEM RECRIAR O FORMULÁRIO
   document.getElementById("tituloTes").innerHTML = item.tipo;
+  if (item.tipo.includes("Receita")) {
+    carregarCategoriasSelect("receitas");
+} else {
+    carregarCategoriasSelect("despesas");
+}
   
   // Mostra todos os campos
   document.getElementById("categoria").style.display = "block";
