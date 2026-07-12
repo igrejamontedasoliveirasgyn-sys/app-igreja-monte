@@ -464,6 +464,9 @@
         <div class="icon">⚡</div><h3>Ações</h3>
         <button onclick="navegar('tesouraria')" style="margin-top:4px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">💰 Tesouraria</button>
         <button onclick="navegar('secretaria')" style="margin-top:2px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">📋 Secretaria</button>
+        <button onclick="exportarBackup()" style="margin-top:2px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">💾 Exportar Backup</button>
+        <button onclick="document.getElementById('inputRestaurarBackup').click()" style="margin-top:2px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">📂 Restaurar Backup</button>
+        <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
       </div>
     </div>
   </section>
@@ -591,6 +594,50 @@ function getData(key) {
 
 function setData(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+}
+
+// ============================================================
+// BACKUP E RESTAURAÇÃO
+// ============================================================
+const CHAVES_BACKUP = ['lancamentos', 'membros', 'lideranca', 'categorias', 'bancos'];
+
+function exportarBackup() {
+  let backup = {};
+  CHAVES_BACKUP.forEach(chave => { backup[chave] = getData(chave); });
+  backup._dataExportacao = new Date().toLocaleString('pt-BR');
+  let blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  let dataArquivo = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `backup-igreja-monte-${dataArquivo}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('✅ Backup exportado! Guarde o arquivo em local seguro (Google Drive, WhatsApp para você mesmo, etc.).');
+}
+
+function importarBackup(event) {
+  let arquivo = event.target.files[0];
+  if (!arquivo) return;
+  if (!confirm('⚠️ Isso vai SUBSTITUIR todos os dados atuais pelos dados do arquivo de backup. Deseja continuar?')) {
+    event.target.value = '';
+    return;
+  }
+  let leitor = new FileReader();
+  leitor.onload = function(e) {
+    try {
+      let dados = JSON.parse(e.target.result);
+      CHAVES_BACKUP.forEach(chave => { if (dados[chave] !== undefined) setData(chave, dados[chave]); });
+      alert('✅ Backup restaurado com sucesso! A página vai recarregar.');
+      location.reload();
+    } catch (err) {
+      alert('❌ Arquivo de backup inválido ou corrompido.');
+    }
+  };
+  leitor.readAsText(arquivo);
+  event.target.value = '';
 }
 
 function getSaldo() {
@@ -1885,7 +1932,7 @@ window.onload = function() {
 // ============================================================
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register('./sw.js')
     .then(function() { console.log('✅ Service Worker registrado'); })
     .catch(function(err) { console.log('❌ Service Worker erro:', err); });
 }
