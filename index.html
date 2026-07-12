@@ -100,12 +100,12 @@
 
     .dash-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
       margin-top: 10px;
     }
     .dash-card {
-      padding: 14px 10px;
+      padding: 18px 12px;
       border-radius: var(--radius);
       text-align: center;
       border: 1px solid var(--glass-border);
@@ -113,15 +113,31 @@
       transition: all 0.3s ease;
     }
     .dash-card:hover { transform: scale(1.02); }
-    .dash-card .icon { font-size: 1.4rem; }
-    .dash-card h3 { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; opacity: 0.6; font-weight: 400; }
-    .dash-card .valor { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+    .dash-card .icon { font-size: 1.7rem; }
+    .dash-card h3 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.3px; opacity: 0.6; font-weight: 400; }
+    .dash-card .valor { font-size: 1.35rem; font-weight: 700; margin-top: 3px; }
     .dash-card.green { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.15); }
     .dash-card.blue { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.15); }
     .dash-card.purple { background: rgba(124, 58, 237, 0.1); border-color: rgba(124, 58, 237, 0.15); }
     .dash-card.red { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.15); }
     .dash-card.orange { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.15); }
     .dash-card.dark { background: rgba(255,255,255,0.02); border-color: var(--glass-border); }
+
+    .acoes-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .acao-btn {
+      display: block;
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--glass-border);
+      color: #e2e8f0;
+      padding: 10px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    .acao-btn:hover { background: rgba(255,255,255,0.16); transform: translateY(-2px); }
 
     .btn-group {
       display: flex;
@@ -429,11 +445,23 @@
     }
 
     @media (max-width: 500px) {
-      .header h1 { font-size: 0.9rem; }
-      .nav button { padding: 4px 10px; font-size: 0.65rem; }
-      .dash-card .valor { font-size: 1rem; }
-      .btn-group button { min-width: 50px; font-size: 0.6rem; padding: 6px 4px; }
+      .header h1 { font-size: 1.05rem; }
+      .header p { font-size: 0.75rem; }
+      .nav button { padding: 7px 14px; font-size: 0.75rem; }
+      .dash-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .dash-card { padding: 16px 10px; }
+      .dash-card .icon { font-size: 1.7rem; }
+      .dash-card h3 { font-size: 0.68rem; }
+      .dash-card .valor { font-size: 1.15rem; }
+      .dash-card.dark { grid-column: 1 / -1; padding: 16px 12px; }
+      .dash-card.dark .icon, .dash-card.dark h3 { text-align: left; }
+      .btn-group button { min-width: 50px; font-size: 0.68rem; padding: 10px 4px; }
       .modal-content { padding: 12px; margin: 6px; }
+      .glass-card { padding: 14px; }
+      .form-group input, .form-group select { padding: 10px 12px; font-size: 0.95rem; }
+      .btn-salvar, .btn-salvar-sec { padding: 13px; font-size: 0.95rem; }
+      .historico-item .tipo { font-size: 0.85rem; }
+      .historico-item .valor-item { font-size: 1rem; }
     }
   </style>
 </head>
@@ -462,10 +490,12 @@
       <div class="dash-card orange"><div class="icon">💰</div><h3>Saldo Total</h3><div class="valor" id="dashTotal">R$ 0,00</div></div>
       <div class="dash-card dark">
         <div class="icon">⚡</div><h3>Ações</h3>
-        <button onclick="navegar('tesouraria')" style="margin-top:4px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">💰 Tesouraria</button>
-        <button onclick="navegar('secretaria')" style="margin-top:2px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">📋 Secretaria</button>
-        <button onclick="exportarBackup()" style="margin-top:2px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">💾 Exportar Backup</button>
-        <button onclick="document.getElementById('inputRestaurarBackup').click()" style="margin-top:2px; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:#e2e8f0; padding:4px 12px; border-radius:50px; cursor:pointer; font-size:0.65rem;">📂 Restaurar Backup</button>
+        <div class="acoes-lista">
+          <button class="acao-btn" onclick="navegar('tesouraria')">💰 Tesouraria</button>
+          <button class="acao-btn" onclick="navegar('secretaria')">📋 Secretaria</button>
+          <button class="acao-btn" onclick="exportarBackup()">💾 Exportar Backup</button>
+          <button class="acao-btn" onclick="document.getElementById('inputRestaurarBackup').click()">📂 Restaurar Backup</button>
+        </div>
         <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
       </div>
     </div>
