@@ -416,6 +416,13 @@
 
     /* CORREÇÃO DEFINITIVA PARA IMPRESSÃO */
     @media print {
+      /* CORREÇÃO: backdrop-filter/transform em ancestrais (ex: .glass-card) criam
+         um novo "contexto de posicionamento" para elementos position:absolute.
+         Isso fazia o top:0 do relatório valer a partir do .glass-card (que já
+         estava mais embaixo na página) em vez do topo real da página, empurrando
+         o cabeçalho para baixo. Zerando isso em tudo, o topo da página volta a
+         ser a referência de fato. */
+      * { backdrop-filter: none !important; filter: none !important; transform: none !important; }
       body * { visibility: hidden !important; }
       #relatorioParaImprimir, #relatorioParaImprimir * { visibility: visible !important; }
       #relatorioParaImprimir {
@@ -790,14 +797,29 @@ function atualizarSelectCategorias(tipo) {
   select.innerHTML = lista.map(c => `<option>${c}</option>`).join('');
 }
 
-function atualizarSelectOrigemDestino() {
+function listaContas() {
   let bancos = carregarBancos();
   let opcoes = ['<option>Selecionar</option>', '<option>Caixa Igreja</option>', '<option>Banco Igreja</option>'];
   bancos.forEach(b => opcoes.push(`<option>${b}</option>`));
-  let html = opcoes.join('');
+  return opcoes.join('');
+}
+
+// Usado por Transferência: Origem e Destino são as duas pontas do mesmo conjunto de contas
+function atualizarSelectOrigemDestino() {
+  let html = listaContas();
   document.getElementById('selOrigem').innerHTML = html;
   document.getElementById('selDestino').innerHTML = html;
+}
 
+// Usado por Receita/Despesa: um único campo "Conta" (onde o dinheiro entrou/saiu),
+// sem duplicar Origem+Destino+Banco com as mesmas opções
+function atualizarSelectConta() {
+  document.getElementById('selOrigem').innerHTML = listaContas();
+}
+
+// Usado por Depósito: qual banco específico recebeu o valor
+function atualizarSelectBanco() {
+  let bancos = carregarBancos();
   let opBanco = ['<option>Selecionar Banco</option>'];
   bancos.forEach(b => opBanco.push(`<option>${b}</option>`));
   document.getElementById('selBanco').innerHTML = opBanco.join('');
@@ -819,7 +841,7 @@ function abrirForm(tipo, preservarEdicao) {
   document.getElementById('inputValor').parentElement.style.display = 'block';
   document.getElementById('btnSalvar').style.display = 'block';
 
-  // Mostrar todos os grupos
+  // Mostrar todos os grupos (cada case abaixo esconde o que não usa)
   document.getElementById('grupoCategoria').style.display = 'block';
   document.getElementById('grupoOrigem').style.display = 'block';
   document.getElementById('grupoDestino').style.display = 'block';
@@ -838,22 +860,29 @@ function abrirForm(tipo, preservarEdicao) {
       document.getElementById('formTitulo').textContent = '💰 Lançamento de Receita';
       atualizarSelectCategorias('receitas');
       document.getElementById('grupoMembro').style.display = 'block';
-      document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'ORIGEM (De onde vem)';
-      document.getElementById('selDestino').parentElement.querySelector('label').textContent = 'DESTINO (Para onde vai)';
-      let destinosReceita = ['Culto da Família', 'Culto de Jovens', 'Escola Dominical', 'Campanha', 'Fundo Missionário', 'Outro'];
-      document.getElementById('selDestino').innerHTML = '<option>Selecionar Destino</option>' + 
-        destinosReceita.map(d => `<option>${d}</option>`).join('');
+      // CORREÇÃO: Destino e Banco tiravam quase as mesmas opções da Categoria e do
+      // próprio Origem, virando 3 selects de banco repetidos. Ficou só 1 campo de
+      // conta (Origem, renomeado pra "Conta"): onde o dinheiro entrou.
+      document.getElementById('grupoDestino').style.display = 'none';
+      document.getElementById('grupoBanco').style.display = 'none';
+      document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'CONTA (onde o dinheiro entrou)';
+      atualizarSelectConta();
+      document.getElementById('selDestino').innerHTML = '<option>Selecionar Destino</option>';
+      document.getElementById('selBanco').innerHTML = '<option>Selecionar Banco</option>';
       break;
 
     case 'Despesa':
       document.getElementById('formTitulo').textContent = '💸 Lançamento de Despesa';
       atualizarSelectCategorias('despesas');
       document.getElementById('grupoMembro').style.display = 'none';
-      document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'ORIGEM (De onde sai)';
-      document.getElementById('selDestino').parentElement.querySelector('label').textContent = 'DESTINO (Para onde vai)';
-      let destinosDespesa = ['Água', 'Luz', 'Internet', 'Material', 'Limpeza', 'Manutenção', 'Aluguel', 'Outro'];
-      document.getElementById('selDestino').innerHTML = '<option>Selecionar Destino</option>' + 
-        destinosDespesa.map(d => `<option>${d}</option>`).join('');
+      // CORREÇÃO: mesmo caso da Receita — Destino repetia a própria Categoria (Água,
+      // Luz, etc). Fica só a Conta: de onde o dinheiro saiu.
+      document.getElementById('grupoDestino').style.display = 'none';
+      document.getElementById('grupoBanco').style.display = 'none';
+      document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'CONTA (de onde o dinheiro saiu)';
+      atualizarSelectConta();
+      document.getElementById('selDestino').innerHTML = '<option>Selecionar Destino</option>';
+      document.getElementById('selBanco').innerHTML = '<option>Selecionar Banco</option>';
       break;
 
     case 'Transferência':
@@ -871,14 +900,11 @@ function abrirForm(tipo, preservarEdicao) {
       document.getElementById('grupoBanco').style.display = 'block';
       document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'DE ONDE SAI';
       document.getElementById('selDestino').parentElement.querySelector('label').textContent = 'PARA ONDE VAI';
+      document.getElementById('selBanco').parentElement.querySelector('label').textContent = 'BANCO (opcional)';
       document.getElementById('selOrigem').innerHTML = '<option>Caixa Igreja</option>';
       document.getElementById('selDestino').innerHTML = '<option>Banco Igreja</option>';
+      atualizarSelectBanco();
       break;
-  }
-
-  // CORREÇÃO: evita chamar atualizarSelectOrigemDestino() duas vezes no caso "Transferência"
-  if (tipo !== 'Depósito' && tipo !== 'Transferência') {
-    atualizarSelectOrigemDestino();
   }
 
   carregarHistorico();
@@ -993,7 +1019,8 @@ function carregarHistorico() {
       detalhes.push('🏦 ' + item.banco);
     }
     if (item.origem && item.origem !== 'Selecionar' && item.origem !== 'Selecionar Origem') {
-      detalhes.push('📤 ' + item.origem);
+      var isContaSimples = item.tipo.includes('Receita') || item.tipo.includes('Despesa');
+      detalhes.push((isContaSimples ? '🏦 ' : '📤 ') + item.origem);
     }
     if (item.destino && item.destino !== 'Selecionar' && item.destino !== 'Selecionar Destino') {
       detalhes.push('📥 ' + item.destino);
