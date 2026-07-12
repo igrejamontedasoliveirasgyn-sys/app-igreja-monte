@@ -580,8 +580,10 @@ const DADOS_PADRAO = {
 function getData(key) {
   try {
     const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : (DADOS_PADRAO[key] || []);
-  } catch { return DADOS_PADRAO[key] || []; }
+    if (data) return JSON.parse(data);
+    // CORREÇÃO: clonar o valor padrão para nunca devolver a mesma referência
+    return JSON.parse(JSON.stringify(DADOS_PADRAO[key] !== undefined ? DADOS_PADRAO[key] : []));
+  } catch { return JSON.parse(JSON.stringify(DADOS_PADRAO[key] !== undefined ? DADOS_PADRAO[key] : [])); }
 }
 
 function setData(key, data) {
@@ -679,7 +681,7 @@ function atualizarDashboard() {
 // TESOURARIA - FORMULÁRIO
 // ============================================================
 
-// CORREÇÃO: Variável global para controle de edição
+// Variável global para controle de edição
 var indiceEdicaoGlobal = -1;
 var tipoAtualGlobal = 'Receita';
 
@@ -721,13 +723,21 @@ function atualizarSelectOrigemDestino() {
   document.getElementById('selBanco').innerHTML = opBanco.join('');
 }
 
-function abrirForm(tipo) {
+// CORREÇÃO: parâmetro opcional "preservarEdicao" evita resetar o índice de edição
+// quando abrirForm() é chamado a partir de editarLancamento()
+function abrirForm(tipo, preservarEdicao) {
   tipoAtualGlobal = tipo;
-  // CORREÇÃO: Resetar índice de edição ao abrir novo formulário
-  indiceEdicaoGlobal = -1;
-  document.getElementById('btnSalvar').textContent = '💾 Salvar Lançamento';
+  if (!preservarEdicao) {
+    indiceEdicaoGlobal = -1;
+    document.getElementById('btnSalvar').textContent = '💾 Salvar Lançamento';
+  }
   document.getElementById('relatorioContainer').style.display = 'none';
   document.getElementById('historicoContainer').style.display = 'block';
+
+  // CORREÇÃO: restaurar campos que o Relatório havia escondido
+  document.getElementById('inputDescricao').parentElement.style.display = 'block';
+  document.getElementById('inputValor').parentElement.style.display = 'block';
+  document.getElementById('btnSalvar').style.display = 'block';
 
   // Mostrar todos os grupos
   document.getElementById('grupoCategoria').style.display = 'block';
@@ -736,9 +746,11 @@ function abrirForm(tipo) {
   document.getElementById('grupoBanco').style.display = 'block';
   document.getElementById('grupoMembro').style.display = 'none';
 
-  // Resetar campos
-  document.getElementById('inputDescricao').value = '';
-  document.getElementById('inputValor').value = '';
+  // Resetar campos (apenas se não estiver editando)
+  if (!preservarEdicao) {
+    document.getElementById('inputDescricao').value = '';
+    document.getElementById('inputValor').value = '';
+  }
 
   // Configurar dependendo do tipo
   switch(tipo) {
@@ -784,7 +796,8 @@ function abrirForm(tipo) {
       break;
   }
 
-  if (tipo !== 'Depósito') {
+  // CORREÇÃO: evita chamar atualizarSelectOrigemDestino() duas vezes no caso "Transferência"
+  if (tipo !== 'Depósito' && tipo !== 'Transferência') {
     atualizarSelectOrigemDestino();
   }
 
@@ -837,6 +850,8 @@ function salvarLancamento() {
     descricao = categoria;
   }
 
+  var lancamentoAnterior = (indiceEdicaoGlobal !== -1) ? getData('lancamentos')[indiceEdicaoGlobal] : null;
+
   var lancamento = {
     tipo: tipo,
     categoria: categoria,
@@ -847,12 +862,13 @@ function salvarLancamento() {
     descricao: descricao,
     valor: valorStr,
     valorNum: valor,
-    data: new Date().toLocaleString('pt-BR')
+    // CORREÇÃO: preserva a data original do lançamento ao editar
+    data: lancamentoAnterior ? lancamentoAnterior.data : new Date().toLocaleString('pt-BR')
   };
 
   var lancamentos = getData('lancamentos');
 
-  // CORREÇÃO: Verifica se é edição usando a variável global
+  // Verifica se é edição usando a variável global
   if (indiceEdicaoGlobal !== -1 && indiceEdicaoGlobal < lancamentos.length) {
     lancamentos[indiceEdicaoGlobal] = lancamento;
     alert('✅ Lançamento atualizado!');
@@ -925,24 +941,31 @@ function excluirLancamento(index) {
   var lancamentos = getData('lancamentos');
   lancamentos.splice(index, 1);
   setData('lancamentos', lancamentos);
+  // CORREÇÃO: se o item excluído era o que estava em edição, cancela a edição
+  if (indiceEdicaoGlobal === index) {
+    indiceEdicaoGlobal = -1;
+    document.getElementById('btnSalvar').textContent = '💾 Salvar Lançamento';
+  }
   carregarHistorico();
   atualizarDashboard();
 }
 
-// CORREÇÃO: Função de edição com índice global
+// CORREÇÃO: Função de edição com índice global preservado
 function editarLancamento(index) {
   var lancamentos = getData('lancamentos');
   var item = lancamentos[index];
-  
-  // CORREÇÃO: Define o índice de edição GLOBAL
-  indiceEdicaoGlobal = index;
 
-  // Identificar o tipo e abrir o formulário correto
+  // Identificar o tipo e abrir o formulário correto,
+  // avisando abrirForm() para NÃO resetar o índice de edição
   var tipo = item.tipo;
-  if (tipo.includes('Receita')) abrirForm('Receita');
-  else if (tipo.includes('Despesa')) abrirForm('Despesa');
-  else if (tipo.includes('Transferência')) abrirForm('Transferência');
-  else if (tipo.includes('Depósito')) abrirForm('Depósito');
+  if (tipo.includes('Receita')) abrirForm('Receita', true);
+  else if (tipo.includes('Despesa')) abrirForm('Despesa', true);
+  else if (tipo.includes('Transferência')) abrirForm('Transferência', true);
+  else if (tipo.includes('Depósito')) abrirForm('Depósito', true);
+
+  // CORREÇÃO: define o índice de edição DEPOIS de abrir o formulário,
+  // para que abrirForm() não o sobrescreva
+  indiceEdicaoGlobal = index;
 
   // Preencher campos
   document.getElementById('selCategoria').value = item.categoria || 'Selecionar';
@@ -973,6 +996,9 @@ function abrirRelatorio() {
   document.getElementById('inputValor').parentElement.style.display = 'none';
   document.getElementById('btnSalvar').style.display = 'none';
   document.getElementById('formTitulo').textContent = '📊 Relatórios Financeiros';
+
+  // CORREÇÃO: sair do modo de edição ao abrir relatórios
+  indiceEdicaoGlobal = -1;
 
   var now = new Date();
   document.getElementById('mesRelatorio').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
@@ -1238,6 +1264,10 @@ function gerarRelatorioPeriodo() {
 // ============================================================
 
 function abrirCategorias() {
+  // CORREÇÃO: remove qualquer modal de categorias já aberto antes de criar outro
+  // (isso evitava que a lista de categorias aparecesse duplicada/empilhada)
+  fecharModal();
+
   var cats = getData('categorias');
   var modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -1283,11 +1313,12 @@ function abrirCategorias() {
 }
 
 function fecharModal() {
-  var modal = document.getElementById('modalCategorias');
-  if (modal) modal.remove();
+  // CORREÇÃO: remove TODAS as instâncias do modal (caso alguma tenha ficado duplicada
+  // de versões anteriores), não apenas a primeira encontrada
+  document.querySelectorAll('#modalCategorias').forEach(function(m) { m.remove(); });
 }
 
-// CORREÇÃO: Adiciona categoria APENAS no tipo especificado
+// Adiciona categoria APENAS no tipo especificado
 function adicionarCategoria(tipo) {
   var cats = getData('categorias');
   cats[tipo].push('Nova Categoria');
@@ -1482,12 +1513,14 @@ function salvarEdicaoMembro(index) {
 }
 
 // ============================================================
-// SECRETARIA - DOCUMENTOS (CORRIGIDO)
+// SECRETARIA - DOCUMENTOS (CORRIGIDO E MAIS COMPLETO)
 // ============================================================
 
 function renderDocumentos() {
   var membros = getData('membros');
+  var lideranca = getData('lideranca');
   var listaOpt = membros.map(function(m) { return '<option>' + m.nome + '</option>'; }).join('');
+  var listaLiderOpt = lideranca.map(function(l) { return '<option>' + l.nome + ' (' + l.cargo + ')</option>'; }).join('');
   
   var html = `
     <div style="display:grid; gap:6px;">
@@ -1521,6 +1554,17 @@ function renderDocumentos() {
         <label style="display:block; font-size:0.65rem; color:#94a3b8;">Data</label>
         <input type="date" id="dataDoc" style="width:100%;">
       </div>
+      <div class="form-group">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Responsável (assinatura)</label>
+        <select id="responsavelDoc" style="width:100%;">
+          <option>Pastor Presidente</option>
+          ${listaLiderOpt}
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Observações (opcional)</label>
+        <input type="text" id="obsDoc" placeholder="Detalhes adicionais para o documento" style="width:100%;">
+      </div>
       <button class="btn-salvar-sec" onclick="gerarDocumento()">📄 Gerar Documento</button>
     </div>
     <div id="docContainer" style="margin-top:10px;"></div>
@@ -1535,13 +1579,16 @@ function renderDocumentos() {
   });
 }
 
-// CORREÇÃO: Função com versículos e nome correto
+// CORREÇÃO: documento com mais detalhes (nº do documento, responsável, observações, endereço da igreja)
 function gerarDocumento() {
   var tipo = document.getElementById('tipoDoc').value;
   var data = document.getElementById('dataDoc').value;
   var nome = document.getElementById('nomeDoc')?.value || '';
+  var responsavel = document.getElementById('responsavelDoc').value;
+  var observacoes = document.getElementById('obsDoc').value.trim();
   
   var dataFormatada = data ? new Date(data).toLocaleDateString('pt-BR') : '____/____/______';
+  var numeroDoc = 'Nº ' + Date.now().toString().slice(-6);
   
   if (tipo !== 'Casamento' && (nome === 'Selecionar' || !nome)) {
     alert('⚠️ Selecione um membro!');
@@ -1559,27 +1606,39 @@ function gerarDocumento() {
     Crianca: '"Deixem vir a mim as crianças, e não as impeçam, pois o Reino de Deus pertence aos que são como elas." (Lucas 18:16)'
   };
 
+  var cabecalho = `
+    <div style="text-align:center; margin-bottom:16px;">
+      <h2 style="font-size:15px;">IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
+      <p style="font-size:11px; color:#94a3b8;">Rua 52 QD 71 Lote 5 – Condomínio das Esmeraldas • Goiânia - GO</p>
+      <p style="font-size:11px; color:#94a3b8;">CNPJ: 00237230/0001-79</p>
+      <p style="font-size:10px; color:#64748b; margin-top:4px;">Documento ${numeroDoc}</p>
+    </div>
+  `;
+
+  var rodape = `
+    ${observacoes ? '<p style="margin-top:10px; font-size:12px; color:#94a3b8;"><em>Observações: ' + observacoes + '</em></p>' : ''}
+    <p style="margin-top:10px;">Goiânia - GO, ${dataFormatada}</p>
+    <div class="assinatura">
+      _________________________<br>
+      <span style="font-size:11px;">${responsavel}</span><br>
+      <span style="font-size:10px; color:#94a3b8;">Igreja Pentecostal Monte das Oliveiras</span>
+    </div>
+  `;
+
   switch(tipo) {
     case 'Carta':
       titulo = 'CARTA DE MEMBRO';
       versiculo = versiculos.Carta;
       conteudo = `
-        <div style="text-align:center; margin-bottom:16px;">
-          <h2 style="font-size:15px;">IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
-          <p style="font-size:11px; color:#94a3b8;">CNPJ: 00237230/0001-79</p>
-          <h3 style="margin-top:10px; font-size:14px; color:#a78bfa;">${titulo}</h3>
-        </div>
+        ${cabecalho}
+        <h3 style="text-align:center; font-size:14px; color:#a78bfa;">${titulo}</h3>
         <div class="content">
-          <p>Declaramos que <strong>${nome}</strong> é membro ativo desta Igreja,</p>
+          <p>Declaramos, para os devidos fins, que <strong>${nome}</strong> é membro ativo desta Igreja,</p>
           <p>participante das atividades e cultos, tendo sua vida e conduta em conformidade</p>
-          <p>com os princípios bíblicos.</p>
+          <p>com os princípios bíblicos e com a doutrina desta congregação.</p>
         </div>
         <div class="versiculo">${versiculo}</div>
-        <p style="margin-top:10px;">Data: ${dataFormatada}</p>
-        <div class="assinatura">
-          _________________________<br>
-          <span style="font-size:11px;">Assinatura do Pastor</span>
-        </div>
+        ${rodape}
       `;
       break;
 
@@ -1587,21 +1646,14 @@ function gerarDocumento() {
       titulo = 'CERTIDÃO DE BATISMO';
       versiculo = versiculos.Batismo;
       conteudo = `
-        <div style="text-align:center; margin-bottom:16px;">
-          <h2 style="font-size:15px;">IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
-          <p style="font-size:11px; color:#94a3b8;">CNPJ: 00237230/0001-79</p>
-          <h3 style="margin-top:10px; font-size:14px; color:#a78bfa;">${titulo}</h3>
-        </div>
+        ${cabecalho}
+        <h3 style="text-align:center; font-size:14px; color:#a78bfa;">${titulo}</h3>
         <div class="content">
-          <p>Certificamos que <strong>${nome}</strong> foi batizado(a) nas águas</p>
-          <p>em ${dataFormatada}, conforme a Palavra de Deus.</p>
+          <p>Certificamos que <strong>${nome}</strong> foi batizado(a) nas águas, em obediência à Palavra de Deus,</p>
+          <p>no dia ${dataFormatada}, nesta Igreja Pentecostal Monte das Oliveiras, em Goiânia - GO.</p>
         </div>
         <div class="versiculo">${versiculo}</div>
-        <p style="margin-top:10px;">Data: ${dataFormatada}</p>
-        <div class="assinatura">
-          _________________________<br>
-          <span style="font-size:11px;">Assinatura do Pastor</span>
-        </div>
+        ${rodape}
       `;
       break;
 
@@ -1615,21 +1667,15 @@ function gerarDocumento() {
       titulo = 'CERTIDÃO DE CASAMENTO';
       versiculo = versiculos.Casamento;
       conteudo = `
-        <div style="text-align:center; margin-bottom:16px;">
-          <h2 style="font-size:15px;">IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
-          <p style="font-size:11px; color:#94a3b8;">CNPJ: 00237230/0001-79</p>
-          <h3 style="margin-top:10px; font-size:14px; color:#a78bfa;">${titulo}</h3>
-        </div>
+        ${cabecalho}
+        <h3 style="text-align:center; font-size:14px; color:#a78bfa;">${titulo}</h3>
         <div class="content">
           <p>Certificamos que <strong>${noivo}</strong> e <strong>${noiva}</strong></p>
-          <p>contraíram matrimônio em ${dataFormatada}, sob a benção de Deus.</p>
+          <p>contraíram matrimônio no dia ${dataFormatada}, sob a benção de Deus,</p>
+          <p>nesta Igreja Pentecostal Monte das Oliveiras, em Goiânia - GO.</p>
         </div>
         <div class="versiculo">${versiculo}</div>
-        <p style="margin-top:10px;">Data: ${dataFormatada}</p>
-        <div class="assinatura">
-          _________________________<br>
-          <span style="font-size:11px;">Assinatura do Pastor</span>
-        </div>
+        ${rodape}
       `;
       break;
 
@@ -1637,20 +1683,14 @@ function gerarDocumento() {
       titulo = 'CERTIDÃO DE APRESENTAÇÃO DE CRIANÇA';
       versiculo = versiculos.Crianca;
       conteudo = `
-        <div style="text-align:center; margin-bottom:16px;">
-          <h2 style="font-size:15px;">IGREJA PENTECOSTAL MONTE DAS OLIVEIRAS</h2>
-          <p style="font-size:11px; color:#94a3b8;">CNPJ: 00237230/0001-79</p>
-          <h3 style="margin-top:10px; font-size:14px; color:#a78bfa;">${titulo}</h3>
-        </div>
+        ${cabecalho}
+        <h3 style="text-align:center; font-size:14px; color:#a78bfa;">${titulo}</h3>
         <div class="content">
-          <p>A criança <strong>${nome}</strong> foi apresentada ao Senhor em ${dataFormatada}.</p>
+          <p>A criança <strong>${nome}</strong> foi apresentada ao Senhor no dia ${dataFormatada},</p>
+          <p>nesta Igreja Pentecostal Monte das Oliveiras, em Goiânia - GO.</p>
         </div>
         <div class="versiculo">${versiculo}</div>
-        <p style="margin-top:10px;">Data: ${dataFormatada}</p>
-        <div class="assinatura">
-          _________________________<br>
-          <span style="font-size:11px;">Assinatura do Pastor</span>
-        </div>
+        ${rodape}
       `;
       break;
   }
