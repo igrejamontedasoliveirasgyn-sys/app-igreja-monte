@@ -847,6 +847,7 @@ function abrirForm(tipo, preservarEdicao) {
   document.getElementById('grupoDestino').style.display = 'block';
   document.getElementById('grupoBanco').style.display = 'block';
   document.getElementById('grupoMembro').style.display = 'none';
+  document.getElementById('selMembro').value = 'Selecionar Membro';
 
   // Resetar campos (apenas se não estiver editando)
   if (!preservarEdicao) {
@@ -933,6 +934,13 @@ function salvarLancamento() {
   var isTransferencia = tipo.includes('Transferência');
   var isDeposito = tipo.includes('Depósito');
   var isReceita = tipo.includes('Receita');
+
+  // CORREÇÃO: o select de Membro fica oculto (não apagado) fora da Receita,
+  // então ele podia manter um valor escolhido antes e ser salvo à toa em
+  // Despesa/Transferência/Depósito. Só a Receita usa Membro.
+  if (!isReceita) {
+    membro = '';
+  }
 
   if (!isTransferencia && !isDeposito) {
     if (!categoria || categoria === 'Selecionar') {
