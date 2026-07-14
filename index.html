@@ -2328,7 +2328,7 @@ function gerarDocumento() {
               <p style="font-size:10px; font-weight:bold; color:#4b2e1e; margin:0;">${liderObj ? liderObj.cargo : ''}</p>
               ${liderObj && liderObj.nascimento ? '<p style="font-size:8px; color:#555; margin:2px 0 0;">Nasc.: ' + new Date(liderObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
               ${liderObj && liderObj.cpf ? '<p style="font-size:8px; color:#555; margin:0;">CPF: ' + liderObj.cpf + '</p>' : ''}
-              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:8px; color:#555; margin:0;">Investido(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:8px; color:#555; margin:0;">Consagrado(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
           <p style="font-size:9px; margin:2px 0;">Autorizado(a) a exercer suas atividades ministeriais nesta igreja.</p>
@@ -2417,7 +2417,7 @@ function renderLideranca() {
           <input id="naturalidadeLider" placeholder="Cidade/UF" style="width:100%;">
         </div>
         <div class="form-group">
-          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Investido(a) desde</label>
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Consagrado(a) desde</label>
           <input type="date" id="investidoDesdeLider" style="width:100%;">
         </div>
       </div>
@@ -2511,7 +2511,7 @@ function editarLider(index) {
           <input id="naturalidadeLider" placeholder="Cidade/UF" value="${l.naturalidade || ''}" style="width:100%;">
         </div>
         <div class="form-group">
-          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Investido(a) desde</label>
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Consagrado(a) desde</label>
           <input type="date" id="investidoDesdeLider" value="${l.investidoDesde || ''}" style="width:100%;">
         </div>
       </div>
