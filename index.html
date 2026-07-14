@@ -833,6 +833,37 @@ function atualizarDashboard() {
 var indiceEdicaoGlobal = -1;
 var tipoAtualGlobal = 'Receita';
 
+// NOVO: guarda a foto recém-selecionada (em base64) antes de salvar o membro/líder
+var fotoMTemp = null;
+var fotoLiderTemp = null;
+
+// Lê o arquivo de imagem escolhido, recorta em quadrado e reduz o tamanho,
+// pra não pesar no armazenamento local do navegador
+function lerFotoComoBase64(inputEl, previewImgId, aoConcluir) {
+  var file = inputEl.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var tam = 240;
+      var canvas = document.createElement('canvas');
+      canvas.width = tam;
+      canvas.height = tam;
+      var ctx = canvas.getContext('2d');
+      var lado = Math.min(img.width, img.height);
+      var sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
+      ctx.drawImage(img, sx, sy, lado, lado, 0, 0, tam, tam);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      var prev = document.getElementById(previewImgId);
+      if (prev) { prev.src = dataUrl; prev.style.display = 'inline-block'; }
+      aoConcluir(dataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function carregarBancos() {
   return getData('bancos');
 }
@@ -904,6 +935,7 @@ function abrirForm(tipo, preservarEdicao) {
 
   // Mostrar todos os grupos (cada case abaixo esconde o que não usa)
   document.getElementById('grupoCategoria').style.display = 'block';
+  document.getElementById('selCategoria').innerHTML = '<option>Selecionar</option>';
   document.getElementById('grupoOrigem').style.display = 'block';
   document.getElementById('grupoDestino').style.display = 'block';
   document.getElementById('grupoBanco').style.display = 'block';
@@ -1016,6 +1048,13 @@ function salvarLancamento() {
   // Despesa/Transferência/Depósito. Só a Receita usa Membro.
   if (!isReceita) {
     membro = '';
+  }
+
+  // CORREÇÃO: mesmo problema do Membro — o select de Categoria fica só oculto
+  // (não apagado) em Transferência/Depósito/Saldo Inicial, então podia salvar
+  // uma categoria de um lançamento anterior (ex: "Dízimo") à toa.
+  if (isTransferencia || isDeposito || isSaldoInicial) {
+    categoria = '';
   }
 
   // O Saldo Inicial não pode ser editado depois de lançado (é um registro fixo
@@ -1756,11 +1795,48 @@ function abrirSec(modo) {
 
 function renderMembros() {
   var membros = getData('membros');
+  fotoMTemp = null;
   var html = `
     <div style="display:grid; gap:6px; margin-bottom:10px;">
+      <div style="text-align:center;">
+        <img id="previewFotoM" src="" style="width:80px; height:80px; border-radius:50%; object-fit:cover; background:rgba(255,255,255,0.06); display:none;">
+        <div class="form-group" style="margin-top:4px;">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Foto (opcional)</label>
+          <input type="file" id="fotoM" accept="image/*" onchange="lerFotoComoBase64(this, 'previewFotoM', function(d){ fotoMTemp = d; })">
+        </div>
+      </div>
       <div class="form-group"><input id="nomeM" placeholder="Nome completo" style="width:100%;"></div>
       <div class="form-group"><input id="telefoneM" placeholder="Telefone" style="width:100%;"></div>
       <div class="form-group"><input id="enderecoM" placeholder="Endereço" style="width:100%;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Data de Nascimento</label>
+          <input type="date" id="nascimentoM" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">CPF</label>
+          <input id="cpfM" placeholder="000.000.000-00" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Naturalidade</label>
+          <input id="naturalidadeM" placeholder="Cidade/UF" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Estado Civil</label>
+          <select id="estadoCivilM" style="width:100%;">
+            <option>Solteiro(a)</option>
+            <option>Casado(a)</option>
+            <option>Viúvo(a)</option>
+            <option>Divorciado(a)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Membro desde</label>
+        <input type="date" id="membroDesdeM" style="width:100%;">
+      </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
         <div class="form-group">
           <select id="cargoM" style="width:100%;">
@@ -1786,6 +1862,7 @@ function renderMembros() {
     membros.forEach(function(m, i) {
       html += `
         <div class="historico-item">
+          ${m.foto ? '<img src="' + m.foto + '" style="width:36px; height:36px; border-radius:50%; object-fit:cover; float:right;">' : ''}
           <div style="font-weight:600;">${m.nome}</div>
           <div style="color:#94a3b8; font-size:0.7rem;">${m.cargo || 'Membro'} • ${m.situacao || 'Ativo'}</div>
           ${m.telefone ? '<div style="color:#64748b; font-size:0.65rem;">📞 ' + m.telefone + '</div>' : ''}
@@ -1812,7 +1889,13 @@ function salvarMembro() {
     telefone: document.getElementById('telefoneM').value.trim(),
     endereco: document.getElementById('enderecoM').value.trim(),
     cargo: document.getElementById('cargoM').value,
-    situacao: document.getElementById('situacaoM').value
+    situacao: document.getElementById('situacaoM').value,
+    nascimento: document.getElementById('nascimentoM').value,
+    cpf: document.getElementById('cpfM').value.trim(),
+    naturalidade: document.getElementById('naturalidadeM').value.trim(),
+    estadoCivil: document.getElementById('estadoCivilM').value,
+    membroDesde: document.getElementById('membroDesdeM').value,
+    foto: fotoMTemp || ''
   });
   setData('membros', membros);
   renderMembros();
@@ -1831,11 +1914,45 @@ function excluirMembro(index) {
 function editarMembro(index) {
   var membros = getData('membros');
   var m = membros[index];
+  fotoMTemp = null;
   var html = `
     <div style="display:grid; gap:6px; margin-bottom:10px;">
+      <div style="text-align:center;">
+        <img id="previewFotoM" src="${m.foto || ''}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; background:rgba(255,255,255,0.06); display:${m.foto ? 'inline-block' : 'none'};">
+        <div class="form-group" style="margin-top:4px;">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Foto (deixe em branco pra manter a atual)</label>
+          <input type="file" id="fotoM" accept="image/*" onchange="lerFotoComoBase64(this, 'previewFotoM', function(d){ fotoMTemp = d; })">
+        </div>
+      </div>
       <div class="form-group"><input id="nomeM" placeholder="Nome completo" value="${m.nome}" style="width:100%;"></div>
       <div class="form-group"><input id="telefoneM" placeholder="Telefone" value="${m.telefone || ''}" style="width:100%;"></div>
       <div class="form-group"><input id="enderecoM" placeholder="Endereço" value="${m.endereco || ''}" style="width:100%;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Data de Nascimento</label>
+          <input type="date" id="nascimentoM" value="${m.nascimento || ''}" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">CPF</label>
+          <input id="cpfM" placeholder="000.000.000-00" value="${m.cpf || ''}" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Naturalidade</label>
+          <input id="naturalidadeM" placeholder="Cidade/UF" value="${m.naturalidade || ''}" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Estado Civil</label>
+          <select id="estadoCivilM" style="width:100%;">
+            ${['Solteiro(a)','Casado(a)','Viúvo(a)','Divorciado(a)'].map(function(ec) { return '<option ' + (ec === m.estadoCivil ? 'selected' : '') + '>' + ec + '</option>'; }).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Membro desde</label>
+        <input type="date" id="membroDesdeM" value="${m.membroDesde || ''}" style="width:100%;">
+      </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
         <div class="form-group">
           <select id="cargoM" style="width:100%;">
@@ -1884,7 +2001,13 @@ function salvarEdicaoMembro(index) {
     telefone: document.getElementById('telefoneM').value.trim(),
     endereco: document.getElementById('enderecoM').value.trim(),
     cargo: document.getElementById('cargoM').value,
-    situacao: document.getElementById('situacaoM').value
+    situacao: document.getElementById('situacaoM').value,
+    nascimento: document.getElementById('nascimentoM').value,
+    cpf: document.getElementById('cpfM').value.trim(),
+    naturalidade: document.getElementById('naturalidadeM').value.trim(),
+    estadoCivil: document.getElementById('estadoCivilM').value,
+    membroDesde: document.getElementById('membroDesdeM').value,
+    foto: fotoMTemp || membros[index].foto || ''
   };
   setData('membros', membros);
   renderMembros();
@@ -1910,6 +2033,8 @@ function renderDocumentos() {
           <option>Batismo</option>
           <option>Casamento</option>
           <option>Criança</option>
+          <option>Carteirinha de Membro</option>
+          <option>Credencial de Líder</option>
         </select>
       </div>
       <div class="form-group" id="grupoNomeDoc">
@@ -1928,6 +2053,13 @@ function renderDocumentos() {
           <label style="display:block; font-size:0.65rem; color:#94a3b8;">Noiva</label>
           <select id="noiva" style="width:100%;"><option>Selecionar</option>${listaOpt}</select>
         </div>
+      </div>
+      <div class="form-group" id="grupoLiderDoc" style="display:none;">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Líder</label>
+        <select id="liderDoc" style="width:100%;">
+          <option value="-1">Selecionar</option>
+          ${lideranca.map(function(l, i) { return '<option value="' + i + '">' + l.nome + ' - ' + l.cargo + '</option>'; }).join('')}
+        </select>
       </div>
       <div class="form-group">
         <label style="display:block; font-size:0.65rem; color:#94a3b8;">Data</label>
@@ -1952,9 +2084,11 @@ function renderDocumentos() {
   document.getElementById('secConteudo').innerHTML = html;
 
   document.getElementById('tipoDoc').addEventListener('change', function() {
-    var show = this.value === 'Casamento';
-    document.getElementById('casamentoCampos').style.display = show ? 'block' : 'none';
-    document.getElementById('grupoNomeDoc').style.display = show ? 'none' : 'block';
+    var isCasamento = this.value === 'Casamento';
+    var isCredencial = this.value === 'Credencial de Líder';
+    document.getElementById('casamentoCampos').style.display = isCasamento ? 'block' : 'none';
+    document.getElementById('grupoLiderDoc').style.display = isCredencial ? 'block' : 'none';
+    document.getElementById('grupoNomeDoc').style.display = (isCasamento || isCredencial) ? 'none' : 'block';
   });
 }
 
@@ -1968,9 +2102,20 @@ function gerarDocumento() {
   
   var dataFormatada = data ? new Date(data).toLocaleDateString('pt-BR') : '____/____/______';
   var numeroDoc = 'Nº ' + Date.now().toString().slice(-6);
+
+  var membrosTodos = getData('membros');
+  var membroObj = membrosTodos.find(function(x) { return x.nome === nome; });
+  var liderancaTodos = getData('lideranca');
+  var liderIndex = document.getElementById('liderDoc') ? parseInt(document.getElementById('liderDoc').value, 10) : -1;
+  var liderObj = (liderIndex >= 0) ? liderancaTodos[liderIndex] : null;
   
-  if (tipo !== 'Casamento' && (nome === 'Selecionar' || !nome)) {
+  if (tipo !== 'Casamento' && tipo !== 'Credencial de Líder' && (nome === 'Selecionar' || !nome)) {
     alert('⚠️ Selecione um membro!');
+    return;
+  }
+
+  if (tipo === 'Credencial de Líder' && !liderObj) {
+    alert('⚠️ Selecione um líder!');
     return;
   }
 
@@ -2073,6 +2218,69 @@ function gerarDocumento() {
         ${rodape}
       `;
       break;
+
+    case 'Carteirinha de Membro':
+      conteudo = `
+        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
+            <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
+            <div style="text-align:left; line-height:1.1;">
+              <div style="font-size:10px; font-weight:bold;">IGREJA PENTECOSTAL</div>
+              <div style="font-size:10px; font-weight:bold;">MONTE DAS OLIVEIRAS</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:8px 0; margin-bottom:6px; text-align:left;">
+            ${membroObj && membroObj.foto ?
+              '<img src="' + membroObj.foto + '" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
+              '<div style="width:64px; height:64px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#999;">👤</div>'}
+            <div style="flex:1;">
+              <p style="font-size:8px; color:#666; margin:0;">CARTEIRINHA DE MEMBRO</p>
+              <p style="font-size:14px; font-weight:bold; margin:2px 0;">${nome}</p>
+              <p style="font-size:9px; margin:0;">${membroObj ? (membroObj.cargo || 'Membro') : 'Membro'} • ${membroObj ? (membroObj.situacao || 'Ativo') : 'Ativo'}</p>
+              ${membroObj && membroObj.nascimento ? '<p style="font-size:8px; color:#666; margin:2px 0 0;">Nasc.: ' + new Date(membroObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${membroObj && membroObj.cpf ? '<p style="font-size:8px; color:#666; margin:0;">CPF: ' + membroObj.cpf + '</p>' : ''}
+              ${membroObj && membroObj.membroDesde ? '<p style="font-size:8px; color:#666; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+            </div>
+          </div>
+          <p style="font-size:8px; color:#666; margin:1px 0;">${numeroDoc} • Emitida em ${dataFormatada}</p>
+          <p style="font-size:8px; color:#666; margin:1px 0;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
+        </div>
+      `;
+      break;
+
+    case 'Credencial de Líder':
+      conteudo = `
+        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
+            <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
+            <div style="text-align:left; line-height:1.1;">
+              <div style="font-size:10px; font-weight:bold;">IGREJA PENTECOSTAL</div>
+              <div style="font-size:10px; font-weight:bold;">MONTE DAS OLIVEIRAS</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:8px 0; margin-bottom:6px; text-align:left;">
+            ${liderObj && liderObj.foto ?
+              '<img src="' + liderObj.foto + '" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
+              '<div style="width:64px; height:64px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#999;">👤</div>'}
+            <div style="flex:1;">
+              <p style="font-size:8px; color:#666; margin:0;">CREDENCIAL MINISTERIAL</p>
+              <p style="font-size:14px; font-weight:bold; margin:2px 0;">${liderObj ? liderObj.nome : ''}</p>
+              <p style="font-size:10px; font-weight:bold; color:#4b2e1e; margin:0;">${liderObj ? liderObj.cargo : ''}</p>
+              ${liderObj && liderObj.nascimento ? '<p style="font-size:8px; color:#666; margin:2px 0 0;">Nasc.: ' + new Date(liderObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${liderObj && liderObj.cpf ? '<p style="font-size:8px; color:#666; margin:0;">CPF: ' + liderObj.cpf + '</p>' : ''}
+              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:8px; color:#666; margin:0;">Investido(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+            </div>
+          </div>
+          <p style="font-size:9px; margin:2px 0;">Autorizado(a) a exercer suas atividades ministeriais nesta igreja.</p>
+          <p style="font-size:8px; color:#666; margin:1px 0;">${numeroDoc} • Válida a partir de ${dataFormatada}</p>
+          <p style="font-size:8px; color:#666; margin:1px 0 6px;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
+          <div style="font-size:9px;">
+            _________________________<br>
+            <span style="font-size:8px;">${responsavel}</span>
+          </div>
+        </div>
+      `;
+      break;
   }
 
   var html = `
@@ -2101,8 +2309,16 @@ function imprimirDocumento() {
 
 function renderLideranca() {
   var lideranca = getData('lideranca');
+  fotoLiderTemp = null;
   var html = `
     <div style="display:grid; gap:6px; margin-bottom:10px;">
+      <div style="text-align:center;">
+        <img id="previewFotoLider" src="" style="width:80px; height:80px; border-radius:50%; object-fit:cover; background:rgba(255,255,255,0.06); display:none;">
+        <div class="form-group" style="margin-top:4px;">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Foto (opcional)</label>
+          <input type="file" id="fotoLider" accept="image/*" onchange="lerFotoComoBase64(this, 'previewFotoLider', function(d){ fotoLiderTemp = d; })">
+        </div>
+      </div>
       <div class="form-group"><input id="nomeLider" placeholder="Nome" style="width:100%;"></div>
       <div class="form-group">
         <select id="cargoLider" style="width:100%;">
@@ -2123,6 +2339,27 @@ function renderLideranca() {
           <option>Pastora</option>
         </select>
       </div>
+      <div class="form-group"><input id="telefoneLider" placeholder="Telefone" style="width:100%;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Data de Nascimento</label>
+          <input type="date" id="nascimentoLider" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">CPF</label>
+          <input id="cpfLider" placeholder="000.000.000-00" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Naturalidade</label>
+          <input id="naturalidadeLider" placeholder="Cidade/UF" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Investido(a) desde</label>
+          <input type="date" id="investidoDesdeLider" style="width:100%;">
+        </div>
+      </div>
       <button class="btn-salvar-sec" onclick="salvarLider()">💾 Salvar Líder</button>
     </div>
     <div id="listaLider">
@@ -2134,6 +2371,7 @@ function renderLideranca() {
     lideranca.forEach(function(l, i) {
       html += `
         <div class="historico-item">
+          ${l.foto ? '<img src="' + l.foto + '" style="width:36px; height:36px; border-radius:50%; object-fit:cover; float:right;">' : ''}
           <div style="font-weight:600;">${l.nome}</div>
           <div style="color:#94a3b8; font-size:0.7rem;">${l.cargo}</div>
           <div class="actions">
@@ -2155,7 +2393,13 @@ function salvarLider() {
   var lideranca = getData('lideranca');
   lideranca.push({
     nome: nome,
-    cargo: document.getElementById('cargoLider').value
+    cargo: document.getElementById('cargoLider').value,
+    telefone: document.getElementById('telefoneLider').value.trim(),
+    nascimento: document.getElementById('nascimentoLider').value,
+    cpf: document.getElementById('cpfLider').value.trim(),
+    naturalidade: document.getElementById('naturalidadeLider').value.trim(),
+    investidoDesde: document.getElementById('investidoDesdeLider').value,
+    foto: fotoLiderTemp || ''
   });
   setData('lideranca', lideranca);
   renderLideranca();
@@ -2172,14 +2416,43 @@ function excluirLider(index) {
 function editarLider(index) {
   var lideranca = getData('lideranca');
   var l = lideranca[index];
+  fotoLiderTemp = null;
   var html = `
     <div style="display:grid; gap:6px; margin-bottom:10px;">
+      <div style="text-align:center;">
+        <img id="previewFotoLider" src="${l.foto || ''}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; background:rgba(255,255,255,0.06); display:${l.foto ? 'inline-block' : 'none'};">
+        <div class="form-group" style="margin-top:4px;">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Foto (deixe em branco pra manter a atual)</label>
+          <input type="file" id="fotoLider" accept="image/*" onchange="lerFotoComoBase64(this, 'previewFotoLider', function(d){ fotoLiderTemp = d; })">
+        </div>
+      </div>
       <div class="form-group"><input id="nomeLider" placeholder="Nome" value="${l.nome}" style="width:100%;"></div>
       <div class="form-group">
         <select id="cargoLider" style="width:100%;">
           ${['Pastor Presidente','Pastora Presidente','Tesoureiro','Tesoureira','Secretário','Secretária','Diácono','Diaconisa','Presbítero','Presbítera','Evangelista','Missionário','Missionária','Pastor','Pastora']
             .map(function(c) { return '<option ' + (c === l.cargo ? 'selected' : '') + '>' + c + '</option>'; }).join('')}
         </select>
+      </div>
+      <div class="form-group"><input id="telefoneLider" placeholder="Telefone" value="${l.telefone || ''}" style="width:100%;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Data de Nascimento</label>
+          <input type="date" id="nascimentoLider" value="${l.nascimento || ''}" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">CPF</label>
+          <input id="cpfLider" placeholder="000.000.000-00" value="${l.cpf || ''}" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Naturalidade</label>
+          <input id="naturalidadeLider" placeholder="Cidade/UF" value="${l.naturalidade || ''}" style="width:100%;">
+        </div>
+        <div class="form-group">
+          <label style="display:block; font-size:0.65rem; color:#94a3b8;">Investido(a) desde</label>
+          <input type="date" id="investidoDesdeLider" value="${l.investidoDesde || ''}" style="width:100%;">
+        </div>
       </div>
       <button class="btn-salvar-sec" onclick="salvarEdicaoLider(${index})">💾 Salvar Alterações</button>
       <button onclick="renderLideranca()" style="padding:6px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:6px; color:#94a3b8; cursor:pointer;">↩ Cancelar</button>
@@ -2212,7 +2485,13 @@ function salvarEdicaoLider(index) {
   var lideranca = getData('lideranca');
   lideranca[index] = {
     nome: nome,
-    cargo: document.getElementById('cargoLider').value
+    cargo: document.getElementById('cargoLider').value,
+    telefone: document.getElementById('telefoneLider').value.trim(),
+    nascimento: document.getElementById('nascimentoLider').value,
+    cpf: document.getElementById('cpfLider').value.trim(),
+    naturalidade: document.getElementById('naturalidadeLider').value.trim(),
+    investidoDesde: document.getElementById('investidoDesdeLider').value,
+    foto: fotoLiderTemp || lideranca[index].foto || ''
   };
   setData('lideranca', lideranca);
   renderLideranca();
