@@ -2162,6 +2162,10 @@ function gerarDocumento() {
   var liderancaTodos = getData('lideranca');
   var liderIndex = document.getElementById('liderDoc') ? parseInt(document.getElementById('liderDoc').value, 10) : -1;
   var liderObj = (liderIndex >= 0) ? liderancaTodos[liderIndex] : null;
+  // NOVO: número fixo (matrícula) baseado na ordem de cadastro, em vez de um número
+  // que mudava a cada impressão (baseado no horário) e não tinha nenhum sentido pra igreja
+  var matriculaMembro = membroObj ? 'Matrícula Nº ' + String(membrosTodos.indexOf(membroObj) + 1).padStart(4, '0') : '';
+  var matriculaLider = liderObj ? 'Credencial Nº ' + String(liderIndex + 1).padStart(4, '0') : '';
   var assinaturaImg = assinaturaDocTemp || '';
   var corCard = document.getElementById('corCardDoc') ? document.getElementById('corCardDoc').value : '#ffffff';
   var blocoAssinatura = assinaturaImg
@@ -2302,8 +2306,9 @@ function gerarDocumento() {
               ${membroObj && membroObj.membroDesde ? '<p style="font-size:8px; color:#555; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
-          <p style="font-size:8px; color:#555; margin:1px 0;">${numeroDoc} • Emitida em ${dataFormatada}</p>
+          <p style="font-size:8px; color:#555; margin:1px 0;">${matriculaMembro} • Emitida em ${dataFormatada}</p>
           <p style="font-size:8px; color:#555; margin:1px 0;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
+          ${observacoes ? '<p style="font-size:8px; color:#555; margin:3px 0 0; font-style:italic;">' + observacoes + '</p>' : ''}
         </div>
       `;
       break;
@@ -2332,8 +2337,9 @@ function gerarDocumento() {
             </div>
           </div>
           <p style="font-size:9px; margin:2px 0;">Autorizado(a) a exercer suas atividades ministeriais nesta igreja.</p>
-          <p style="font-size:8px; color:#555; margin:1px 0;">${numeroDoc} • Válida a partir de ${dataFormatada}</p>
+          <p style="font-size:8px; color:#555; margin:1px 0;">${matriculaLider} • Válida a partir de ${dataFormatada}</p>
           <p style="font-size:8px; color:#555; margin:1px 0 6px;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
+          ${observacoes ? '<p style="font-size:8px; color:#555; margin:0 0 6px; font-style:italic;">' + observacoes + '</p>' : ''}
           <div style="font-size:9px;">
             ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:130px; max-height:40px; display:block; margin:0 auto 2px;">' : '_________________________<br>'}
             <span style="font-size:8px; font-weight:bold;">${responsavelNome}</span>
