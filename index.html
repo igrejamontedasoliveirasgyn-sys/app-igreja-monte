@@ -2164,8 +2164,6 @@ function gerarDocumento() {
   var liderObj = (liderIndex >= 0) ? liderancaTodos[liderIndex] : null;
   // NOVO: número fixo (matrícula) baseado na ordem de cadastro, em vez de um número
   // que mudava a cada impressão (baseado no horário) e não tinha nenhum sentido pra igreja
-  var matriculaMembro = membroObj ? 'Matrícula Nº ' + String(membrosTodos.indexOf(membroObj) + 1).padStart(4, '0') : '';
-  var matriculaLider = liderObj ? 'Credencial Nº ' + String(liderIndex + 1).padStart(4, '0') : '';
   var assinaturaImg = assinaturaDocTemp || '';
   var corCard = document.getElementById('corCardDoc') ? document.getElementById('corCardDoc').value : '#ffffff';
   var blocoAssinatura = assinaturaImg
@@ -2284,66 +2282,70 @@ function gerarDocumento() {
       break;
 
     case 'Carteirinha de Membro':
+      var infoExtraM = [
+        membroObj && membroObj.nascimento ? 'Nasc.: ' + new Date(membroObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') : '',
+        membroObj && membroObj.cpf ? 'CPF: ' + membroObj.cpf : ''
+      ].filter(Boolean).join(' • ');
       conteudo = `
-        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
-          <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
-            <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
-            <div style="text-align:left; line-height:1.1;">
-              <div style="font-size:10px; font-weight:bold;">IGREJA PENTECOSTAL</div>
-              <div style="font-size:10px; font-weight:bold;">MONTE DAS OLIVEIRAS</div>
+        <div style="width:85.6mm; height:53.98mm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:3mm; padding:6px; overflow:hidden; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:2px;">
+            <img src="${LOGO_IGREJA}" alt="Logo" style="height:26px;">
+            <div style="text-align:left; line-height:1.05;">
+              <div style="font-size:9px; font-weight:bold;">IGREJA PENTECOSTAL</div>
+              <div style="font-size:9px; font-weight:bold;">MONTE DAS OLIVEIRAS</div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:8px 0; margin-bottom:6px; text-align:left;">
+          <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px 0; margin-bottom:3px; text-align:left;">
             ${membroObj && membroObj.foto ?
-              '<img src="' + membroObj.foto + '" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
-              '<div style="width:64px; height:64px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#999;">👤</div>'}
-            <div style="flex:1;">
-              <p style="font-size:8px; color:#555; margin:0;">CARTEIRINHA DE MEMBRO</p>
-              <p style="font-size:14px; font-weight:bold; margin:2px 0;">${nome}</p>
-              <p style="font-size:9px; margin:0;">${membroObj ? (membroObj.cargo || 'Membro') : 'Membro'} • ${membroObj ? (membroObj.situacao || 'Ativo') : 'Ativo'}</p>
-              ${membroObj && membroObj.nascimento ? '<p style="font-size:8px; color:#555; margin:2px 0 0;">Nasc.: ' + new Date(membroObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
-              ${membroObj && membroObj.cpf ? '<p style="font-size:8px; color:#555; margin:0;">CPF: ' + membroObj.cpf + '</p>' : ''}
-              ${membroObj && membroObj.membroDesde ? '<p style="font-size:8px; color:#555; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              '<img src="' + membroObj.foto + '" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
+              '<div style="width:50px; height:50px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px; color:#999;">👤</div>'}
+            <div style="flex:1; min-width:0;">
+              <p style="font-size:7px; color:#555; margin:0;">CARTEIRINHA DE MEMBRO</p>
+              <p style="font-size:12px; font-weight:bold; margin:1px 0; line-height:1.1;">${nome}</p>
+              <p style="font-size:8px; margin:0;">${membroObj ? (membroObj.cargo || 'Membro') : 'Membro'} • ${membroObj ? (membroObj.situacao || 'Ativo') : 'Ativo'}</p>
+              ${infoExtraM ? '<p style="font-size:7px; color:#555; margin:1px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + infoExtraM + '</p>' : ''}
+              ${membroObj && membroObj.membroDesde ? '<p style="font-size:7px; color:#555; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
-          <p style="font-size:8px; color:#555; margin:1px 0;">${matriculaMembro} • Emitida em ${dataFormatada}</p>
-          <p style="font-size:8px; color:#555; margin:1px 0;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
-          ${observacoes ? '<p style="font-size:8px; color:#555; margin:3px 0 0; font-style:italic;">' + observacoes + '</p>' : ''}
+          <p style="font-size:7px; color:#555; margin:1px 0;">Emitida em ${dataFormatada}</p>
+          ${observacoes ? '<p style="font-size:7px; color:#555; margin:1px 0 0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + observacoes + '</p>' : ''}
         </div>
       `;
       break;
 
     case 'Credencial de Líder':
+      var infoExtraL = [
+        liderObj && liderObj.nascimento ? 'Nasc.: ' + new Date(liderObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') : '',
+        liderObj && liderObj.cpf ? 'CPF: ' + liderObj.cpf : ''
+      ].filter(Boolean).join(' • ');
       conteudo = `
-        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
-          <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
-            <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
-            <div style="text-align:left; line-height:1.1;">
-              <div style="font-size:10px; font-weight:bold;">IGREJA PENTECOSTAL</div>
-              <div style="font-size:10px; font-weight:bold;">MONTE DAS OLIVEIRAS</div>
+        <div style="width:85.6mm; height:53.98mm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:3mm; padding:6px; overflow:hidden; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:2px;">
+            <img src="${LOGO_IGREJA}" alt="Logo" style="height:26px;">
+            <div style="text-align:left; line-height:1.05;">
+              <div style="font-size:9px; font-weight:bold;">IGREJA PENTECOSTAL</div>
+              <div style="font-size:9px; font-weight:bold;">MONTE DAS OLIVEIRAS</div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:8px 0; margin-bottom:6px; text-align:left;">
+          <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px 0; margin-bottom:2px; text-align:left;">
             ${liderObj && liderObj.foto ?
-              '<img src="' + liderObj.foto + '" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
-              '<div style="width:64px; height:64px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#999;">👤</div>'}
-            <div style="flex:1;">
-              <p style="font-size:8px; color:#555; margin:0;">CREDENCIAL MINISTERIAL</p>
-              <p style="font-size:14px; font-weight:bold; margin:2px 0;">${liderObj ? liderObj.nome : ''}</p>
-              <p style="font-size:10px; font-weight:bold; color:#4b2e1e; margin:0;">${liderObj ? liderObj.cargo : ''}</p>
-              ${liderObj && liderObj.nascimento ? '<p style="font-size:8px; color:#555; margin:2px 0 0;">Nasc.: ' + new Date(liderObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
-              ${liderObj && liderObj.cpf ? '<p style="font-size:8px; color:#555; margin:0;">CPF: ' + liderObj.cpf + '</p>' : ''}
-              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:8px; color:#555; margin:0;">Consagrado(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              '<img src="' + liderObj.foto + '" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
+              '<div style="width:50px; height:50px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px; color:#999;">👤</div>'}
+            <div style="flex:1; min-width:0;">
+              <p style="font-size:7px; color:#555; margin:0;">CREDENCIAL MINISTERIAL</p>
+              <p style="font-size:12px; font-weight:bold; margin:1px 0; line-height:1.1;">${liderObj ? liderObj.nome : ''}</p>
+              <p style="font-size:9px; font-weight:bold; color:#4b2e1e; margin:0;">${liderObj ? liderObj.cargo : ''}</p>
+              ${infoExtraL ? '<p style="font-size:7px; color:#555; margin:1px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + infoExtraL + '</p>' : ''}
+              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:7px; color:#555; margin:0;">Consagrado(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
-          <p style="font-size:9px; margin:2px 0;">Autorizado(a) a exercer suas atividades ministeriais nesta igreja.</p>
-          <p style="font-size:8px; color:#555; margin:1px 0;">${matriculaLider} • Válida a partir de ${dataFormatada}</p>
-          <p style="font-size:8px; color:#555; margin:1px 0 6px;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
-          ${observacoes ? '<p style="font-size:8px; color:#555; margin:0 0 6px; font-style:italic;">' + observacoes + '</p>' : ''}
-          <div style="font-size:9px;">
-            ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:130px; max-height:40px; display:block; margin:0 auto 2px;">' : '_________________________<br>'}
-            <span style="font-size:8px; font-weight:bold;">${responsavelNome}</span>
-            ${responsavelCargo ? '<br><span style="font-size:7px;">' + responsavelCargo + '</span>' : ''}
+          <p style="font-size:7px; margin:1px 0;">Autorizado(a) a exercer atividades ministeriais nesta igreja.</p>
+          <p style="font-size:7px; color:#555; margin:1px 0;">Válida a partir de ${dataFormatada}</p>
+          ${observacoes ? '<p style="font-size:7px; color:#555; margin:1px 0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + observacoes + '</p>' : ''}
+          <div style="font-size:8px; margin-top:2px;">
+            ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:100px; max-height:26px; display:block; margin:0 auto 1px;">' : '_________________________<br>'}
+            <span style="font-size:7px; font-weight:bold;">${responsavelNome}</span>
+            ${responsavelCargo ? ' <span style="font-size:6px;">(' + responsavelCargo + ')</span>' : ''}
           </div>
         </div>
       `;
