@@ -2281,7 +2281,7 @@ function gerarDocumento() {
 
     case 'Carteirinha de Membro':
       conteudo = `
-        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a;">
+        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
           <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
             <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
             <div style="text-align:left; line-height:1.1;">
@@ -2310,7 +2310,7 @@ function gerarDocumento() {
 
     case 'Credencial de Líder':
       conteudo = `
-        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a;">
+        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
           <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
             <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
             <div style="text-align:left; line-height:1.1;">
@@ -2359,7 +2359,7 @@ function gerarDocumento() {
 function imprimirDocumento() {
   var conteudo = document.getElementById('docContainer').innerHTML;
   var tela = window.open('', '', 'width=800,height=600');
-  tela.document.write('<!DOCTYPE html><html><head><title>Documento</title><style>body{font-family:"Times New Roman",serif;padding:35px;max-width:700px;margin:auto;background:#fff;color:#000;}button{display:none;}.doc-preview{background:white;padding:20px;}</style></head><body>' + conteudo + '</body></html>');
+  tela.document.write('<!DOCTYPE html><html><head><title>Documento</title><style>*{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important;} body{font-family:"Times New Roman",serif;padding:35px;max-width:700px;margin:auto;background:#fff;color:#000;}button{display:none;}.doc-preview{background:white;padding:20px;}</style></head><body>' + conteudo + '</body></html>');
   tela.document.close();
   setTimeout(function() { tela.print(); }, 400);
 }
