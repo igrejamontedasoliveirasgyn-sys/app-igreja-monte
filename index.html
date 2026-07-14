@@ -2345,7 +2345,7 @@ function gerarDocumento() {
           <div style="font-size:8px; margin-top:2px;">
             ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:100px; max-height:26px; display:block; margin:0 auto 1px;">' : '_________________________<br>'}
             <span style="font-size:7px; font-weight:bold;">${responsavelNome}</span>
-            ${responsavelCargo ? ' <span style="font-size:6px;">(' + responsavelCargo + ')</span>' : ''}
+            ${responsavelCargo ? '<br><span style="font-size:6px;">' + responsavelCargo + '</span>' : ''}
           </div>
         </div>
       `;
