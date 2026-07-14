@@ -846,7 +846,8 @@ function lerFotoComoBase64(inputEl, previewImgId, aoConcluir) {
   reader.onload = function(e) {
     var img = new Image();
     img.onload = function() {
-      var tam = 240;
+      // NOVO: resolução maior (era 240px) pra reduzir o borrão ao dar zoom na carteirinha impressa
+      var tam = 480;
       var canvas = document.createElement('canvas');
       canvas.width = tam;
       canvas.height = tam;
@@ -854,7 +855,36 @@ function lerFotoComoBase64(inputEl, previewImgId, aoConcluir) {
       var lado = Math.min(img.width, img.height);
       var sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
       ctx.drawImage(img, sx, sy, lado, lado, 0, 0, tam, tam);
-      var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      var prev = document.getElementById(previewImgId);
+      if (prev) { prev.src = dataUrl; prev.style.display = 'inline-block'; }
+      aoConcluir(dataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// NOVO: leitura de assinatura digital (sem recorte quadrado, mantém proporção original,
+// só limita a largura máxima pra não pesar no armazenamento)
+var assinaturaDocTemp = null;
+function lerAssinaturaComoBase64(inputEl, previewImgId, aoConcluir) {
+  var file = inputEl.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var larguraMax = 320;
+      var escala = Math.min(1, larguraMax / img.width);
+      var w = Math.round(img.width * escala);
+      var h = Math.round(img.height * escala);
+      var canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      var dataUrl = canvas.toDataURL('image/png');
       var prev = document.getElementById(previewImgId);
       if (prev) { prev.src = dataUrl; prev.style.display = 'inline-block'; }
       aoConcluir(dataUrl);
@@ -2073,6 +2103,23 @@ function renderDocumentos() {
         </select>
       </div>
       <div class="form-group">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Assinatura digital (opcional)</label>
+        <img id="previewAssinaturaDoc" src="" style="max-width:160px; max-height:60px; display:none; background:#fff; border-radius:4px; padding:2px;">
+        <input type="file" id="assinaturaDoc" accept="image/*" onchange="lerAssinaturaComoBase64(this, 'previewAssinaturaDoc', function(d){ assinaturaDocTemp = d; })">
+      </div>
+      <div class="form-group" id="grupoCorCard" style="display:none;">
+        <label style="display:block; font-size:0.65rem; color:#94a3b8;">Cor de fundo do cartão</label>
+        <select id="corCardDoc" style="width:100%;">
+          <option value="#ffffff">Branco</option>
+          <option value="#fdf6e3">Bege claro</option>
+          <option value="#e8f0fe">Azul claro</option>
+          <option value="#e9f7ef">Verde claro</option>
+          <option value="#fdeeee">Vermelho claro</option>
+          <option value="#f3e8fd">Lilás claro</option>
+          <option value="#fff8e1">Amarelo claro</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label style="display:block; font-size:0.65rem; color:#94a3b8;">Observações (opcional)</label>
         <input type="text" id="obsDoc" placeholder="Detalhes adicionais para o documento" style="width:100%;">
       </div>
@@ -2082,13 +2129,16 @@ function renderDocumentos() {
   `;
   
   document.getElementById('secConteudo').innerHTML = html;
+  assinaturaDocTemp = null;
 
   document.getElementById('tipoDoc').addEventListener('change', function() {
     var isCasamento = this.value === 'Casamento';
     var isCredencial = this.value === 'Credencial de Líder';
+    var isCartao = isCredencial || this.value === 'Carteirinha de Membro';
     document.getElementById('casamentoCampos').style.display = isCasamento ? 'block' : 'none';
     document.getElementById('grupoLiderDoc').style.display = isCredencial ? 'block' : 'none';
     document.getElementById('grupoNomeDoc').style.display = (isCasamento || isCredencial) ? 'none' : 'block';
+    document.getElementById('grupoCorCard').style.display = isCartao ? 'block' : 'none';
   });
 }
 
@@ -2098,6 +2148,10 @@ function gerarDocumento() {
   var data = document.getElementById('dataDoc').value;
   var nome = document.getElementById('nomeDoc')?.value || '';
   var responsavel = document.getElementById('responsavelDoc').value;
+  // Separa "Nome (Cargo)" em duas partes pra imprimir em linhas distintas na assinatura
+  var respMatch = responsavel.match(/^(.*)\s\((.+)\)$/);
+  var responsavelNome = respMatch ? respMatch[1] : responsavel;
+  var responsavelCargo = respMatch ? respMatch[2] : '';
   var observacoes = document.getElementById('obsDoc').value.trim();
   
   var dataFormatada = data ? new Date(data).toLocaleDateString('pt-BR') : '____/____/______';
@@ -2108,6 +2162,11 @@ function gerarDocumento() {
   var liderancaTodos = getData('lideranca');
   var liderIndex = document.getElementById('liderDoc') ? parseInt(document.getElementById('liderDoc').value, 10) : -1;
   var liderObj = (liderIndex >= 0) ? liderancaTodos[liderIndex] : null;
+  var assinaturaImg = assinaturaDocTemp || '';
+  var corCard = document.getElementById('corCardDoc') ? document.getElementById('corCardDoc').value : '#ffffff';
+  var blocoAssinatura = assinaturaImg
+    ? '<img src="' + assinaturaImg + '" style="max-width:160px; max-height:55px; display:block; margin:0 auto;">'
+    : '_________________________';
   
   if (tipo !== 'Casamento' && tipo !== 'Credencial de Líder' && (nome === 'Selecionar' || !nome)) {
     alert('⚠️ Selecione um membro!');
@@ -2144,8 +2203,9 @@ function gerarDocumento() {
     ${observacoes ? '<p style="margin-top:10px; font-size:12px; color:#94a3b8;"><em>Observações: ' + observacoes + '</em></p>' : ''}
     <p style="margin-top:10px;">Goiânia - GO, ${dataFormatada}</p>
     <div class="assinatura">
-      _________________________<br>
-      <span style="font-size:11px;">${responsavel}</span><br>
+      ${blocoAssinatura}<br>
+      <span style="font-size:11px; font-weight:bold;">${responsavelNome}</span><br>
+      ${responsavelCargo ? '<span style="font-size:10px;">' + responsavelCargo + '</span><br>' : ''}
       <span style="font-size:10px; color:#94a3b8;">Igreja Pentecostal Monte das Oliveiras</span>
     </div>
   `;
@@ -2221,7 +2281,7 @@ function gerarDocumento() {
 
     case 'Carteirinha de Membro':
       conteudo = `
-        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif;">
+        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a;">
           <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
             <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
             <div style="text-align:left; line-height:1.1;">
@@ -2234,23 +2294,23 @@ function gerarDocumento() {
               '<img src="' + membroObj.foto + '" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
               '<div style="width:64px; height:64px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#999;">👤</div>'}
             <div style="flex:1;">
-              <p style="font-size:8px; color:#666; margin:0;">CARTEIRINHA DE MEMBRO</p>
+              <p style="font-size:8px; color:#555; margin:0;">CARTEIRINHA DE MEMBRO</p>
               <p style="font-size:14px; font-weight:bold; margin:2px 0;">${nome}</p>
               <p style="font-size:9px; margin:0;">${membroObj ? (membroObj.cargo || 'Membro') : 'Membro'} • ${membroObj ? (membroObj.situacao || 'Ativo') : 'Ativo'}</p>
-              ${membroObj && membroObj.nascimento ? '<p style="font-size:8px; color:#666; margin:2px 0 0;">Nasc.: ' + new Date(membroObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
-              ${membroObj && membroObj.cpf ? '<p style="font-size:8px; color:#666; margin:0;">CPF: ' + membroObj.cpf + '</p>' : ''}
-              ${membroObj && membroObj.membroDesde ? '<p style="font-size:8px; color:#666; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${membroObj && membroObj.nascimento ? '<p style="font-size:8px; color:#555; margin:2px 0 0;">Nasc.: ' + new Date(membroObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${membroObj && membroObj.cpf ? '<p style="font-size:8px; color:#555; margin:0;">CPF: ' + membroObj.cpf + '</p>' : ''}
+              ${membroObj && membroObj.membroDesde ? '<p style="font-size:8px; color:#555; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
-          <p style="font-size:8px; color:#666; margin:1px 0;">${numeroDoc} • Emitida em ${dataFormatada}</p>
-          <p style="font-size:8px; color:#666; margin:1px 0;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
+          <p style="font-size:8px; color:#555; margin:1px 0;">${numeroDoc} • Emitida em ${dataFormatada}</p>
+          <p style="font-size:8px; color:#555; margin:1px 0;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
         </div>
       `;
       break;
 
     case 'Credencial de Líder':
       conteudo = `
-        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif;">
+        <div style="width:9cm; min-height:5.6cm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:10px; padding:12px; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a;">
           <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
             <img src="${LOGO_IGREJA}" alt="Logo" style="height:36px;">
             <div style="text-align:left; line-height:1.1;">
@@ -2263,20 +2323,21 @@ function gerarDocumento() {
               '<img src="' + liderObj.foto + '" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
               '<div style="width:64px; height:64px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px; color:#999;">👤</div>'}
             <div style="flex:1;">
-              <p style="font-size:8px; color:#666; margin:0;">CREDENCIAL MINISTERIAL</p>
+              <p style="font-size:8px; color:#555; margin:0;">CREDENCIAL MINISTERIAL</p>
               <p style="font-size:14px; font-weight:bold; margin:2px 0;">${liderObj ? liderObj.nome : ''}</p>
               <p style="font-size:10px; font-weight:bold; color:#4b2e1e; margin:0;">${liderObj ? liderObj.cargo : ''}</p>
-              ${liderObj && liderObj.nascimento ? '<p style="font-size:8px; color:#666; margin:2px 0 0;">Nasc.: ' + new Date(liderObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
-              ${liderObj && liderObj.cpf ? '<p style="font-size:8px; color:#666; margin:0;">CPF: ' + liderObj.cpf + '</p>' : ''}
-              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:8px; color:#666; margin:0;">Investido(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${liderObj && liderObj.nascimento ? '<p style="font-size:8px; color:#555; margin:2px 0 0;">Nasc.: ' + new Date(liderObj.nascimento + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
+              ${liderObj && liderObj.cpf ? '<p style="font-size:8px; color:#555; margin:0;">CPF: ' + liderObj.cpf + '</p>' : ''}
+              ${liderObj && liderObj.investidoDesde ? '<p style="font-size:8px; color:#555; margin:0;">Investido(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
           <p style="font-size:9px; margin:2px 0;">Autorizado(a) a exercer suas atividades ministeriais nesta igreja.</p>
-          <p style="font-size:8px; color:#666; margin:1px 0;">${numeroDoc} • Válida a partir de ${dataFormatada}</p>
-          <p style="font-size:8px; color:#666; margin:1px 0 6px;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
+          <p style="font-size:8px; color:#555; margin:1px 0;">${numeroDoc} • Válida a partir de ${dataFormatada}</p>
+          <p style="font-size:8px; color:#555; margin:1px 0 6px;">CNPJ: 00237230/0001-79 • Goiânia - GO</p>
           <div style="font-size:9px;">
-            _________________________<br>
-            <span style="font-size:8px;">${responsavel}</span>
+            ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:130px; max-height:40px; display:block; margin:0 auto 2px;">' : '_________________________<br>'}
+            <span style="font-size:8px; font-weight:bold;">${responsavelNome}</span>
+            ${responsavelCargo ? '<br><span style="font-size:7px;">' + responsavelCargo + '</span>' : ''}
           </div>
         </div>
       `;
