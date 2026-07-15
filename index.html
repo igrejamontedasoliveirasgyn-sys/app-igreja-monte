@@ -515,7 +515,9 @@
           <button class="acao-btn" onclick="navegar('secretaria')">📋 Secretaria</button>
           <button class="acao-btn" onclick="exportarBackup()">💾 Exportar Backup</button>
           <button class="acao-btn" onclick="document.getElementById('inputRestaurarBackup').click()">📂 Restaurar Backup</button>
+          <button class="acao-btn" onclick="sincronizarAgora()">☁️ Sincronizar agora</button>
         </div>
+        <p id="statusNuvem" style="font-size:0.65rem; color:#94a3b8; margin-top:6px;">☁️ Nuvem não configurada</p>
         <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
       </div>
     </div>
@@ -644,7 +646,102 @@
 
 </div>
 
+<!-- Firebase (banco de dados na nuvem) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
+// ============================================================
+// FIREBASE - BACKUP/SINCRONIZAÇÃO NA NUVEM
+// ============================================================
+// PASSO A PASSO PRA ATIVAR:
+// 1. Entre em https://console.firebase.google.com (login com Gmail)
+// 2. Crie um projeto novo (grátis)
+// 3. No menu lateral, clique em "Firestore Database" > "Criar banco de dados"
+//    (escolha "modo de produção" e a região mais próxima, ex: southamerica-east1)
+// 4. Depois, clique no ícone de engrenagem > "Configurações do projeto"
+// 5. Role até "Seus aplicativos" > clique no ícone "</>" (Web) > registre um app
+// 6. Copie o objeto "firebaseConfig" que aparece e cole substituindo o de baixo
+// 7. Em Firestore > aba "Regras", troque temporariamente por:
+//    allow read, write: if true;   (depois dá pra deixar mais seguro)
+const firebaseConfig = {
+  apiKey: "AIzaSyDgkLDbSnPp7ANCwYlUM7sK4zXoU4CF7gM",
+  authDomain: "igreja-monte-oliveiras.firebaseapp.com",
+  projectId: "igreja-monte-oliveiras",
+  storageBucket: "igreja-monte-oliveiras.firebasestorage.app",
+  messagingSenderId: "1041189604754",
+  appId: "1:1041189604754:web:2eeaff01b4a10c82d8854b"
+};
+
+let firestoreDB = null;
+let nuvemAtiva = false;
+try {
+  if (firebaseConfig.apiKey !== "COLE_AQUI") {
+    firebase.initializeApp(firebaseConfig);
+    firestoreDB = firebase.firestore();
+    nuvemAtiva = true;
+  }
+} catch (e) {
+  console.log('Firebase não configurado ainda:', e);
+}
+
+const DOC_NUVEM = 'igreja-monte-oliveiras/dados';
+let timeoutSalvarNuvem = null;
+
+function salvarNuvem() {
+  if (!nuvemAtiva) return;
+  // Debounce: espera meio segundo sem novas mudanças antes de enviar,
+  // pra não disparar uma gravação a cada tecla digitada
+  clearTimeout(timeoutSalvarNuvem);
+  timeoutSalvarNuvem = setTimeout(function() {
+    let pacote = {};
+    CHAVES_BACKUP.forEach(function(chave) { pacote[chave] = getData(chave); });
+    pacote._atualizadoEm = new Date().toISOString();
+    firestoreDB.doc(DOC_NUVEM).set(pacote)
+      .then(function() { atualizarStatusNuvem('✅ Sincronizado com a nuvem'); })
+      .catch(function(err) { atualizarStatusNuvem('❌ Erro ao sincronizar: ' + err.message); });
+  }, 800);
+}
+
+function carregarNuvem() {
+  if (!nuvemAtiva) return Promise.resolve();
+  atualizarStatusNuvem('⏳ Carregando dados da nuvem...');
+  return firestoreDB.doc(DOC_NUVEM).get().then(function(snap) {
+    if (snap.exists) {
+      let pacote = snap.data();
+      CHAVES_BACKUP.forEach(function(chave) {
+        if (pacote[chave] !== undefined) setData(chave, pacote[chave]);
+      });
+      atualizarStatusNuvem('✅ Sincronizado com a nuvem');
+    } else {
+      atualizarStatusNuvem('☁️ Nuvem conectada (ainda sem dados salvos)');
+    }
+  }).catch(function(err) {
+    atualizarStatusNuvem('❌ Erro ao carregar da nuvem: ' + err.message);
+  });
+}
+
+function atualizarStatusNuvem(texto) {
+  let el = document.getElementById('statusNuvem');
+  if (el) el.textContent = texto;
+}
+
+function sincronizarAgora() {
+  if (!nuvemAtiva) {
+    alert('⚠️ A nuvem ainda não foi configurada neste sistema (falta preencher o firebaseConfig no código).');
+    return;
+  }
+  carregarNuvem().then(function() {
+    atualizarDashboard();
+    carregarMembrosSelect();
+    carregarHistorico();
+    alert('✅ Dados atualizados a partir da nuvem!');
+  });
+}
+</script>
+
+<script>
+
 // ============================================================
 // CONFIGURAÇÃO INICIAL
 // ============================================================
@@ -674,6 +771,7 @@ function getData(key) {
 
 function setData(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+  if (typeof salvarNuvem === 'function' && CHAVES_BACKUP.indexOf(key) !== -1) salvarNuvem();
 }
 
 // ============================================================
@@ -2639,11 +2737,18 @@ function renderRelatoriosSec() {
 
 window.onload = function() {
   document.getElementById('logoHeader').src = LOGO_IGREJA;
-  atualizarDashboard();
-  carregarMembrosSelect();
-  carregarHistorico();
-  abrirForm('Receita');
-  abrirSec('membros');
+  var iniciar = function() {
+    atualizarDashboard();
+    carregarMembrosSelect();
+    carregarHistorico();
+    abrirForm('Receita');
+    abrirSec('membros');
+  };
+  if (typeof carregarNuvem === 'function' && nuvemAtiva) {
+    carregarNuvem().then(iniciar).catch(iniciar);
+  } else {
+    iniciar();
+  }
 };
 
 // ============================================================
