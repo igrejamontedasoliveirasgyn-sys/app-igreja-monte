@@ -2321,7 +2321,7 @@ function gerarDocumento() {
         membroObj && membroObj.cpf ? 'CPF: ' + membroObj.cpf : ''
       ].filter(Boolean).join(' • ');
       conteudo = `
-        <div style="width:85.6mm; height:53.98mm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:3mm; padding:6px; overflow:hidden; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
+        <div style="width:85.6mm; height:53.98mm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:3mm; padding:6px; overflow:hidden; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; display:flex; flex-direction:column;">
           <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:2px;">
             <img src="${LOGO_IGREJA}" alt="Logo" style="height:26px;">
             <div style="text-align:left; line-height:1.05;">
@@ -2330,7 +2330,7 @@ function gerarDocumento() {
               <div style="font-size:6px; color:#555;">CNPJ: 00237230/0001-79</div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px 0; margin-bottom:3px; text-align:left;">
+          <div style="flex:1; display:flex; align-items:center; gap:8px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px 0; margin:3px 0; text-align:left;">
             ${membroObj && membroObj.foto ?
               '<img src="' + membroObj.foto + '" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
               '<div style="width:50px; height:50px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px; color:#999;">👤</div>'}
@@ -2342,8 +2342,10 @@ function gerarDocumento() {
               ${membroObj && membroObj.membroDesde ? '<p style="font-size:7px; color:#555; margin:0;">Membro desde: ' + new Date(membroObj.membroDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
-          <p style="font-size:7px; color:#555; margin:1px 0;">Emitida em ${dataFormatada}</p>
-          ${observacoes ? '<p style="font-size:7px; color:#555; margin:1px 0 0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + observacoes + '</p>' : ''}
+          <div>
+            ${observacoes ? '<p style="font-size:7px; color:#555; margin:0 0 2px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + observacoes + '</p>' : ''}
+            <p style="font-size:7px; color:#555; margin:0;">Emitida em ${dataFormatada} • Goiânia - GO</p>
+          </div>
         </div>
       `;
       break;
@@ -2354,7 +2356,7 @@ function gerarDocumento() {
         liderObj && liderObj.cpf ? 'CPF: ' + liderObj.cpf : ''
       ].filter(Boolean).join(' • ');
       conteudo = `
-        <div style="width:85.6mm; height:53.98mm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:3mm; padding:6px; overflow:hidden; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;">
+        <div style="width:85.6mm; height:53.98mm; box-sizing:border-box; margin:0 auto; border:3px solid #4b2e1e; border-radius:3mm; padding:6px; overflow:hidden; text-align:center; font-family:'Times New Roman',serif; background:${corCard}; color:#1a1a1a; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; display:flex; flex-direction:column;">
           <div style="display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:2px;">
             <img src="${LOGO_IGREJA}" alt="Logo" style="height:26px;">
             <div style="text-align:left; line-height:1.05;">
@@ -2363,7 +2365,7 @@ function gerarDocumento() {
               <div style="font-size:6px; color:#555;">CNPJ: 00237230/0001-79</div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px 0; margin-bottom:2px; text-align:left;">
+          <div style="flex:1; display:flex; align-items:center; gap:8px; border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px 0; margin:2px 0; text-align:left;">
             ${liderObj && liderObj.foto ?
               '<img src="' + liderObj.foto + '" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #4b2e1e; flex-shrink:0;">' :
               '<div style="width:50px; height:50px; border-radius:50%; background:#eee; border:2px solid #4b2e1e; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px; color:#999;">👤</div>'}
@@ -2375,13 +2377,15 @@ function gerarDocumento() {
               ${liderObj && liderObj.investidoDesde ? '<p style="font-size:7px; color:#555; margin:0;">Consagrado(a) desde: ' + new Date(liderObj.investidoDesde + 'T00:00:00').toLocaleDateString('pt-BR') + '</p>' : ''}
             </div>
           </div>
-          <p style="font-size:7px; margin:1px 0;">Autorizado(a) a exercer atividades ministeriais nesta igreja.</p>
-          <p style="font-size:7px; color:#555; margin:1px 0;">Válida a partir de ${dataFormatada}</p>
-          ${observacoes ? '<p style="font-size:7px; color:#555; margin:1px 0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + observacoes + '</p>' : ''}
-          <div style="font-size:8px; margin-top:2px;">
-            ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:100px; max-height:26px; display:block; margin:0 auto 1px;">' : '_________________________<br>'}
-            <span style="font-size:7px; font-weight:bold;">${responsavelNome}</span>
-            ${responsavelCargo ? '<br><span style="font-size:6px;">' + responsavelCargo + '</span>' : ''}
+          <div>
+            <p style="font-size:7px; margin:1px 0;">Autorizado(a) a exercer atividades ministeriais nesta igreja.</p>
+            <p style="font-size:7px; color:#555; margin:1px 0;">Válida a partir de ${dataFormatada} • Goiânia - GO</p>
+            ${observacoes ? '<p style="font-size:7px; color:#555; margin:1px 0; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + observacoes + '</p>' : ''}
+            <div style="font-size:8px; margin-top:2px;">
+              ${assinaturaImg ? '<img src="' + assinaturaImg + '" style="max-width:100px; max-height:26px; display:block; margin:0 auto 1px;">' : '_________________________<br>'}
+              <span style="font-size:7px; font-weight:bold;">${responsavelNome}</span>
+              ${responsavelCargo ? '<br><span style="font-size:6px;">' + responsavelCargo + '</span>' : ''}
+            </div>
           </div>
         </div>
       `;
