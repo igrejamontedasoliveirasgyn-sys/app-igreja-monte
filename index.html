@@ -557,12 +557,18 @@
 
       <div class="form-group" id="grupoMembro">
         <label>Membro</label>
-        <select id="selMembro"><option>Selecionar Membro</option></select>
+        <input type="text" id="selMembro" list="listaMembrosDatalist" placeholder="Digite o nome pra buscar" autocomplete="off" style="width:100%;">
+        <datalist id="listaMembrosDatalist"></datalist>
       </div>
 
       <div class="form-group" id="grupoPeriodo" style="display:none;">
         <label>Período de Referência (mês/ano)</label>
         <input type="month" id="inputPeriodo">
+      </div>
+
+      <div class="form-group" id="grupoDataLancamento">
+        <label>Data do Lançamento</label>
+        <input type="date" id="inputDataLancamento" style="width:100%;">
       </div>
 
       <div class="form-group">
@@ -905,11 +911,11 @@ function carregarCategorias(tipo) {
 
 function carregarMembrosSelect() {
   let membros = getData('membros');
-  let select = document.getElementById('selMembro');
-  select.innerHTML = '<option>Selecionar Membro</option>';
+  let datalist = document.getElementById('listaMembrosDatalist');
+  datalist.innerHTML = '';
   membros.forEach(m => {
     let nome = typeof m === 'object' ? m.nome : m;
-    select.innerHTML += `<option>${nome}</option>`;
+    datalist.innerHTML += `<option value="${nome}"></option>`;
   });
 }
 
@@ -970,8 +976,14 @@ function abrirForm(tipo, preservarEdicao) {
   document.getElementById('grupoDestino').style.display = 'block';
   document.getElementById('grupoBanco').style.display = 'block';
   document.getElementById('grupoMembro').style.display = 'none';
-  document.getElementById('selMembro').value = 'Selecionar Membro';
+  document.getElementById('selMembro').value = '';
   document.getElementById('grupoPeriodo').style.display = 'none';
+
+  // NOVO: data do lançamento, editável (por padrão sugere hoje pra um lançamento novo)
+  document.getElementById('grupoDataLancamento').style.display = 'block';
+  if (!preservarEdicao) {
+    document.getElementById('inputDataLancamento').valueAsDate = new Date();
+  }
 
   // Resetar campos (apenas se não estiver editando)
   if (!preservarEdicao) {
@@ -1037,6 +1049,7 @@ function abrirForm(tipo, preservarEdicao) {
       document.getElementById('grupoDestino').style.display = 'none';
       document.getElementById('grupoBanco').style.display = 'none';
       document.getElementById('grupoPeriodo').style.display = 'block';
+      document.getElementById('grupoDataLancamento').style.display = 'none';
       document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'CONTA (banco ou caixa)';
       atualizarSelectConta();
       document.getElementById('selDestino').innerHTML = '<option>Selecionar Destino</option>';
@@ -1143,10 +1156,21 @@ function salvarLancamento() {
     valor: valorStr,
     valorNum: valor,
     periodo: periodo,
-    // CORREÇÃO: preserva a data original do lançamento ao editar
-    // Para Saldo Inicial, a "data" (usada nos relatórios/ordenação) é o 1º dia do período informado
-    data: lancamentoAnterior ? lancamentoAnterior.data :
-      (isSaldoInicial ? ('01/' + periodo.split('-')[1] + '/' + periodo.split('-')[0] + ', 00:00:00') : new Date().toLocaleString('pt-BR'))
+    // NOVO: usa a data escolhida no campo "Data do Lançamento" (permite lançar algo
+    // que aconteceu dias atrás). Saldo Inicial continua usando o 1º dia do período.
+    // Na edição, mantém a mesma hora do lançamento original; num lançamento novo, usa a hora atual.
+    data: (function() {
+      if (isSaldoInicial) {
+        return '01/' + periodo.split('-')[1] + '/' + periodo.split('-')[0] + ', 00:00:00';
+      }
+      var dataEscolhida = document.getElementById('inputDataLancamento').value; // "AAAA-MM-DD"
+      if (dataEscolhida) {
+        var partesData = dataEscolhida.split('-');
+        var horaUsar = lancamentoAnterior ? lancamentoAnterior.data.split(',')[1].trim() : new Date().toLocaleTimeString('pt-BR');
+        return partesData[2] + '/' + partesData[1] + '/' + partesData[0] + ', ' + horaUsar;
+      }
+      return lancamentoAnterior ? lancamentoAnterior.data : new Date().toLocaleString('pt-BR');
+    })()
   };
 
   var lancamentos = getData('lancamentos');
@@ -1169,6 +1193,10 @@ function salvarLancamento() {
   document.getElementById('inputDescricao').value = '';
   document.getElementById('inputValor').value = '';
   document.getElementById('btnSalvar').textContent = '💾 Salvar Lançamento';
+  // Data volta para "hoje" (só quando o campo está visível, ou seja, fora do Saldo Inicial)
+  if (document.getElementById('grupoDataLancamento').style.display !== 'none') {
+    document.getElementById('inputDataLancamento').valueAsDate = new Date();
+  }
 }
 
 // ============================================================
@@ -1265,10 +1293,16 @@ function editarLancamento(index) {
   document.getElementById('selOrigem').value = item.origem || 'Selecionar';
   document.getElementById('selDestino').value = item.destino || 'Selecionar';
   document.getElementById('selBanco').value = item.banco || 'Selecionar Banco';
-  document.getElementById('selMembro').value = item.membro || 'Selecionar Membro';
+  document.getElementById('selMembro').value = item.membro || '';
   document.getElementById('inputDescricao').value = item.descricao || '';
   document.getElementById('inputValor').value = item.valor || '';
   document.getElementById('btnSalvar').textContent = '🔄 Atualizar Lançamento';
+
+  // NOVO: preenche a data do lançamento já salva, permitindo corrigi-la na edição
+  var dataItem = parseDataBR(item.data);
+  if (dataItem) {
+    document.getElementById('inputDataLancamento').valueAsDate = dataItem;
+  }
 
   document.querySelector('.glass-card').scrollIntoView({ behavior: 'smooth' });
 }
