@@ -487,6 +487,21 @@
 </head>
 <body>
 
+<!-- NOVO: tela de login (só aparece se a nuvem estiver configurada) -->
+<div id="telaLogin" style="display:none; position:fixed; inset:0; background:#0f172a; z-index:9999; align-items:center; justify-content:center; flex-direction:column; padding:20px; box-sizing:border-box;">
+  <img id="logoLogin" src="" alt="Logo" style="height:70px; margin-bottom:12px;">
+  <h2 style="color:#fff; font-size:1.1rem; text-align:center; margin-bottom:4px;">Igreja Pentecostal Monte das Oliveiras</h2>
+  <p style="color:#94a3b8; font-size:0.75rem; margin-bottom:20px;">Faça login pra acessar o sistema</p>
+  <div style="width:100%; max-width:320px;">
+    <label style="display:block; font-size:0.65rem; color:#94a3b8;">E-mail</label>
+    <input type="email" id="loginEmail" style="width:100%; margin-bottom:10px;" autocomplete="username">
+    <label style="display:block; font-size:0.65rem; color:#94a3b8;">Senha</label>
+    <input type="password" id="loginSenha" style="width:100%; margin-bottom:14px;" autocomplete="current-password">
+    <button class="btn-salvar-sec" style="width:100%;" onclick="fazerLogin()">🔐 Entrar</button>
+    <p id="loginErro" style="color:#f87171; font-size:0.75rem; text-align:center; margin-top:10px;"></p>
+  </div>
+</div>
+
 <header class="header">
   <h1><img id="logoHeader" src="" alt="Logo" style="height:1.6em; vertical-align:-0.35em; margin-right:6px;"> Igreja Pentecostal Monte das Oliveiras</h1>
   <p>Rua 52 QD 71 Lote 5 – Condomínio das Esmeraldas • Goiânia - GO</p>
@@ -517,6 +532,7 @@
           <button class="acao-btn" onclick="document.getElementById('inputRestaurarBackup').click()">📂 Restaurar Backup</button>
           <button class="acao-btn" onclick="sincronizarAgora()">☁️ Sincronizar agora</button>
           <button class="acao-btn" onclick="enviarTudoParaNuvem()">⬆️ Enviar tudo p/ nuvem</button>
+          <button class="acao-btn" onclick="fazerLogout()">🚪 Sair</button>
         </div>
         <p id="statusNuvem" style="font-size:0.65rem; color:#94a3b8; margin-top:6px;">☁️ Nuvem não configurada</p>
         <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
@@ -650,6 +666,7 @@
 <!-- Firebase (banco de dados na nuvem) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
 <script>
 // ============================================================
@@ -675,15 +692,44 @@ const firebaseConfig = {
 };
 
 let firestoreDB = null;
+let firebaseAuth = null;
 let nuvemAtiva = false;
 try {
   if (firebaseConfig.apiKey !== "COLE_AQUI") {
     firebase.initializeApp(firebaseConfig);
     firestoreDB = firebase.firestore();
+    firebaseAuth = firebase.auth();
     nuvemAtiva = true;
   }
 } catch (e) {
   console.log('Firebase não configurado ainda:', e);
+}
+
+// NOVO: login/logout do sistema (protege o acesso quando a nuvem está ativa)
+function fazerLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var senha = document.getElementById('loginSenha').value;
+  var erroEl = document.getElementById('loginErro');
+  erroEl.textContent = '';
+  if (!email || !senha) { erroEl.textContent = 'Preencha e-mail e senha.'; return; }
+  firebaseAuth.signInWithEmailAndPassword(email, senha).catch(function(err) {
+    if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+      erroEl.textContent = 'E-mail ou senha incorretos.';
+    } else if (err.code === 'auth/too-many-requests') {
+      erroEl.textContent = 'Muitas tentativas. Aguarde um pouco e tente de novo.';
+    } else {
+      erroEl.textContent = 'Erro ao entrar: ' + err.message;
+    }
+  });
+}
+
+function fazerLogout() {
+  if (!nuvemAtiva || !firebaseAuth) {
+    alert('⚠️ O login só é usado quando a nuvem está configurada.');
+    return;
+  }
+  if (!confirm('Deseja sair do sistema?')) return;
+  firebaseAuth.signOut();
 }
 
 const DOC_NUVEM = 'igreja-monte-oliveiras/dados';
@@ -2844,6 +2890,7 @@ function renderRelatoriosSec() {
 
 window.onload = function() {
   document.getElementById('logoHeader').src = LOGO_IGREJA;
+  document.getElementById('logoLogin').src = LOGO_IGREJA;
   var iniciar = function() {
     atualizarDashboard();
     carregarMembrosSelect();
@@ -2851,10 +2898,30 @@ window.onload = function() {
     abrirForm('Receita');
     abrirSec('membros');
   };
-  if (typeof carregarNuvem === 'function' && nuvemAtiva) {
-    carregarNuvem().then(iniciar).catch(iniciar);
+  var carregarTudoEIniciar = function() {
+    if (typeof carregarNuvem === 'function' && nuvemAtiva) {
+      carregarNuvem().then(iniciar).catch(iniciar);
+    } else {
+      iniciar();
+    }
+  };
+
+  if (nuvemAtiva && firebaseAuth) {
+    // Com a nuvem ativa, o sistema só aparece depois de fazer login
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.nav').style.display = 'none';
+    firebaseAuth.onAuthStateChanged(function(user) {
+      if (user) {
+        document.getElementById('telaLogin').style.display = 'none';
+        document.querySelector('.header').style.display = '';
+        document.querySelector('.nav').style.display = '';
+        carregarTudoEIniciar();
+      } else {
+        document.getElementById('telaLogin').style.display = 'flex';
+      }
+    });
   } else {
-    iniciar();
+    carregarTudoEIniciar();
   }
 };
 
