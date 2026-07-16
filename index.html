@@ -915,6 +915,42 @@ function parseDataBR(str) {
   return null;
 }
 
+// NOVO: calcula o saldo de caixa + saldo detalhado por banco (Banco do Brasil,
+// Nubank, e quaisquer outros que forem cadastrados) a partir de uma lista de
+// lançamentos qualquer — usado pra montar o "Saldo Anterior" detalhado por conta
+function calcularSaldoDeItens(itens) {
+  let caixa = 0, banco = 0;
+  let porBanco = {};
+  function addBanco(nome, valor) {
+    if (!nome || nome === 'Caixa Igreja' || nome === 'Selecionar' || nome === 'Selecionar Origem' || nome === 'Selecionar Destino' || nome === 'Selecionar Banco') return;
+    porBanco[nome] = (porBanco[nome] || 0) + valor;
+  }
+  itens.forEach(function(item) {
+    let valor = item.valorNum || parseValor(item.valor);
+    let tipo = item.tipo || '';
+    if (tipo.includes('Receita')) {
+      if (item.origem === 'Caixa Igreja') caixa += valor;
+      else if (item.origem && item.origem !== 'Selecionar' && item.origem !== 'Selecionar Origem') { banco += valor; addBanco(item.origem, valor); }
+    } else if (tipo.includes('Despesa')) {
+      if (item.origem === 'Caixa Igreja') caixa -= valor;
+      else if (item.origem && item.origem !== 'Selecionar' && item.origem !== 'Selecionar Origem') { banco -= valor; addBanco(item.origem, -valor); }
+    } else if (tipo.includes('Transferência')) {
+      if (item.origem === 'Caixa Igreja' && item.destino === 'Banco Igreja') { caixa -= valor; banco += valor; }
+      else if (item.origem === 'Banco Igreja' && item.destino === 'Caixa Igreja') { banco -= valor; caixa += valor; }
+      addBanco(item.origem, -valor);
+      addBanco(item.destino, valor);
+    } else if (tipo.includes('Depósito')) {
+      caixa -= valor; banco += valor;
+      if (item.banco && item.banco !== 'Selecionar Banco') addBanco(item.banco, valor);
+      else addBanco('Banco Igreja', valor);
+    } else if (tipo.includes('Saldo Inicial')) {
+      if (item.origem === 'Caixa Igreja') caixa += valor;
+      else if (item.origem && item.origem !== 'Selecionar') { banco += valor; addBanco(item.origem, valor); }
+    }
+  });
+  return { caixa: caixa, banco: banco, porBanco: porBanco };
+}
+
 // ============================================================
 // NAVEGAÇÃO
 // ============================================================
@@ -1473,27 +1509,25 @@ function gerarRelatorioMensal() {
     return data >= mesInicio && data <= mesFim;
   });
 
-  var saldoAnterior = 0, saldoCaixaAnterior = 0, saldoBancoAnterior = 0;
-  lancamentos.forEach(function(item) {
+  var itensAnteriores = lancamentos.filter(function(item) {
     var data = parseDataBR(item.data);
-    if (!data) return;
+    if (!data) return false;
     var isSaldoInicialItem = item.tipo.includes('Saldo Inicial');
-    var antesDoMes = data < mesInicio;
-    // Saldo Inicial sempre conta como "anterior", mesmo se a data dele cair dentro do mês do relatório
-    if (antesDoMes || (isSaldoInicialItem && data <= mesFim)) {
-      var valor = item.valorNum || parseValor(item.valor);
-      if (item.tipo.includes('Receita') || item.tipo.includes('Depósito') || isSaldoInicialItem) {
-        saldoAnterior += valor;
-        if (item.origem === 'Caixa Igreja') saldoCaixaAnterior += valor; else saldoBancoAnterior += valor;
-      } else if (item.tipo.includes('Despesa') || item.tipo.includes('Transferência')) {
-        saldoAnterior -= valor;
-        if (item.origem === 'Caixa Igreja') saldoCaixaAnterior -= valor; else saldoBancoAnterior -= valor;
-      }
-    }
+    return data < mesInicio || (isSaldoInicialItem && data <= mesFim);
   });
+  var infoAnterior = calcularSaldoDeItens(itensAnteriores);
+  var saldoCaixaAnterior = infoAnterior.caixa;
+  var saldoBancoAnterior = infoAnterior.banco;
+  var porBancoAnterior = infoAnterior.porBanco;
+  var saldoAnterior = saldoCaixaAnterior + saldoBancoAnterior;
 
   var totalEntradas = 0, totalSaidas = 0;
   var saldoCaixa = saldoCaixaAnterior, saldoBanco = saldoBancoAnterior;
+
+  var infoMes = calcularSaldoDeItens(lancamentosMes);
+  var porBancoFinal = {};
+  Object.keys(porBancoAnterior).forEach(function(k) { porBancoFinal[k] = (porBancoFinal[k] || 0) + porBancoAnterior[k]; });
+  Object.keys(infoMes.porBanco).forEach(function(k) { porBancoFinal[k] = (porBancoFinal[k] || 0) + infoMes.porBanco[k]; });
 
   lancamentosMes.sort(function(a, b) { return parseDataBR(a.data) - parseDataBR(b.data); });
 
@@ -1553,12 +1587,26 @@ function gerarRelatorioMensal() {
   if (linhas.length === 0 && saldoAnterior === 0) {
     html += '<tr><td colspan="4" style="text-align:center; color:#64748b;">Nenhum lançamento neste mês</td></tr>';
   } else {
-    html += `
-      <tr style="font-style:italic; color:#94a3b8;">
-        <td colspan="2">Saldo Anterior</td>
-        <td colspan="2" style="text-align:right;">${moeda(saldoAnterior)}</td>
-      </tr>
-    `;
+    html += Object.keys(porBancoAnterior).length === 0 && saldoCaixaAnterior === 0 ? '' : (function() {
+      var linhasAnterior = '';
+      if (saldoCaixaAnterior !== 0 || Object.keys(porBancoAnterior).length === 0) {
+        linhasAnterior += `
+          <tr style="font-style:italic; color:#94a3b8;">
+            <td colspan="2">Saldo Anterior - Caixa Igreja</td>
+            <td colspan="2" style="text-align:right;">${moeda(saldoCaixaAnterior)}</td>
+          </tr>
+        `;
+      }
+      Object.keys(porBancoAnterior).sort().forEach(function(banco) {
+        linhasAnterior += `
+          <tr style="font-style:italic; color:#94a3b8;">
+            <td colspan="2">Saldo Anterior - ${banco}</td>
+            <td colspan="2" style="text-align:right;">${moeda(porBancoAnterior[banco])}</td>
+          </tr>
+        `;
+      });
+      return linhasAnterior;
+    })();
     linhas.forEach(function(row) {
       html += `
         <tr>
@@ -1591,12 +1639,14 @@ function gerarRelatorioMensal() {
         <h4 style="color:#a78bfa;">COMPOSIÇÃO DO SALDO</h4>
         <table style="width:100%;">
           <tr>
-            <td style="width:40%;">Saldo em caixa</td>
-            <td style="width:30%; text-align:right;">${moeda(saldoCaixa)}</td>
-            <td style="width:30%; text-align:right;">Saldo em banco: ${moeda(saldoBanco)}</td>
+            <td style="width:60%;">Saldo em caixa</td>
+            <td style="width:40%; text-align:right;">${moeda(saldoCaixa)}</td>
           </tr>
+          ${Object.keys(porBancoFinal).sort().map(function(banco) {
+            return '<tr><td style="width:60%;">Saldo em ' + banco + '</td><td style="width:40%; text-align:right;">' + moeda(porBancoFinal[banco]) + '</td></tr>';
+          }).join('')}
           <tr class="total-row">
-            <td colspan="2"><strong>SALDO PARA O PRÓXIMO MÊS</strong></td>
+            <td><strong>SALDO PARA O PRÓXIMO MÊS</strong></td>
             <td style="text-align:right;"><strong>${moeda(saldoCaixa + saldoBanco)}</strong></td>
           </tr>
         </table>
@@ -1636,19 +1686,18 @@ function gerarRelatorioPeriodo() {
     return dataComparacao >= inicio && dataComparacao <= fim;
   });
 
-  var saldoAcumulado = 0;
-  lancamentos.forEach(function(item) {
+  var itensAnterioresPeriodo = lancamentos.filter(function(item) {
     var data = parseDataBR(item.data);
-    if (!data) return;
+    if (!data) return false;
     var isSaldoInicialItem = item.tipo.includes('Saldo Inicial');
-    var antesDoPeriodo = data < inicio;
-    if (antesDoPeriodo || (isSaldoInicialItem && data <= fim)) {
-      var valor = item.valorNum || parseValor(item.valor);
-      if (item.tipo.includes('Receita') || item.tipo.includes('Depósito') || isSaldoInicialItem) saldoAcumulado += valor;
-      else if (item.tipo.includes('Despesa') || item.tipo.includes('Transferência')) saldoAcumulado -= valor;
-    }
+    return data < inicio || (isSaldoInicialItem && data <= fim);
   });
-  var saldoAnteriorPeriodo = saldoAcumulado;
+  var infoAnteriorPeriodo = calcularSaldoDeItens(itensAnterioresPeriodo);
+  var saldoCaixaAnteriorPeriodo = infoAnteriorPeriodo.caixa;
+  var saldoBancoAnteriorPeriodo = infoAnteriorPeriodo.banco;
+  var porBancoAnteriorPeriodoDetalhe = infoAnteriorPeriodo.porBanco;
+  var saldoAnteriorPeriodo = saldoCaixaAnteriorPeriodo + saldoBancoAnteriorPeriodo;
+  var saldoAcumulado = saldoAnteriorPeriodo;
 
   if (lancamentosPeriodo.length === 0 && saldoAnteriorPeriodo === 0) {
     document.getElementById('relatorioOutput').innerHTML = 
@@ -1705,10 +1754,14 @@ function gerarRelatorioPeriodo() {
           </tr>
         </thead>
         <tbody>
+          ${saldoCaixaAnteriorPeriodo !== 0 || Object.keys(porBancoAnteriorPeriodoDetalhe).length === 0 ? `
           <tr style="font-style:italic; color:#94a3b8;">
-            <td colspan="4">Saldo Anterior</td>
-            <td style="text-align:right;">${moeda(saldoAnteriorPeriodo)}</td>
-          </tr>
+            <td colspan="4">Saldo Anterior - Caixa Igreja</td>
+            <td style="text-align:right;">${moeda(saldoCaixaAnteriorPeriodo)}</td>
+          </tr>` : ''}
+          ${Object.keys(porBancoAnteriorPeriodoDetalhe).sort().map(function(banco) {
+            return '<tr style="font-style:italic; color:#94a3b8;"><td colspan="4">Saldo Anterior - ' + banco + '</td><td style="text-align:right;">' + moeda(porBancoAnteriorPeriodoDetalhe[banco]) + '</td></tr>';
+          }).join('')}
   `;
 
   linhas.forEach(function(row) {
