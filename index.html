@@ -516,6 +516,7 @@
           <button class="acao-btn" onclick="exportarBackup()">💾 Exportar Backup</button>
           <button class="acao-btn" onclick="document.getElementById('inputRestaurarBackup').click()">📂 Restaurar Backup</button>
           <button class="acao-btn" onclick="sincronizarAgora()">☁️ Sincronizar agora</button>
+          <button class="acao-btn" onclick="enviarTudoParaNuvem()">⬆️ Enviar tudo p/ nuvem</button>
         </div>
         <p id="statusNuvem" style="font-size:0.65rem; color:#94a3b8; margin-top:6px;">☁️ Nuvem não configurada</p>
         <input type="file" id="inputRestaurarBackup" accept="application/json" style="display:none" onchange="importarBackup(event)">
@@ -737,6 +738,30 @@ function sincronizarAgora() {
     carregarHistorico();
     alert('✅ Dados atualizados a partir da nuvem!');
   });
+}
+
+// NOVO: envia tudo o que já está salvo no celular pra nuvem agora mesmo,
+// sem esperar o debounce e sem depender de salvar algo novo primeiro
+function enviarTudoParaNuvem() {
+  if (!nuvemAtiva) {
+    alert('⚠️ A nuvem ainda não foi configurada neste sistema (falta preencher o firebaseConfig no código).');
+    return;
+  }
+  if (!confirm('Isso vai enviar TUDO que está salvo neste celular (lançamentos, membros, liderança, categorias, bancos) para a nuvem, substituindo o que estiver lá. Continuar?')) return;
+  clearTimeout(timeoutSalvarNuvem);
+  let pacote = {};
+  CHAVES_BACKUP.forEach(function(chave) { pacote[chave] = getData(chave); });
+  pacote._atualizadoEm = new Date().toISOString();
+  atualizarStatusNuvem('⏳ Enviando para a nuvem...');
+  firestoreDB.doc(DOC_NUVEM).set(pacote)
+    .then(function() {
+      atualizarStatusNuvem('✅ Sincronizado com a nuvem');
+      alert('✅ Todos os seus dados foram enviados para a nuvem!');
+    })
+    .catch(function(err) {
+      atualizarStatusNuvem('❌ Erro ao enviar: ' + err.message);
+      alert('❌ Erro ao enviar para a nuvem: ' + err.message);
+    });
 }
 </script>
 
