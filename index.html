@@ -1464,24 +1464,36 @@ function gerarRelatorioMensal() {
   var mesFim = new Date(ano, mes, 0);
 
   var lancamentos = getData('lancamentos');
+  // NOVO: Saldo Inicial não entra na lista de lançamentos do mês — ele conta
+  // como parte do "Saldo Anterior", não importa em qual mês foi registrado
   var lancamentosMes = lancamentos.filter(function(item) {
     var data = parseDataBR(item.data);
     if (!data) return false;
+    if (item.tipo.includes('Saldo Inicial')) return false;
     return data >= mesInicio && data <= mesFim;
   });
 
-  var saldoAnterior = 0;
+  var saldoAnterior = 0, saldoCaixaAnterior = 0, saldoBancoAnterior = 0;
   lancamentos.forEach(function(item) {
     var data = parseDataBR(item.data);
-    if (data && data < mesInicio) {
+    if (!data) return;
+    var isSaldoInicialItem = item.tipo.includes('Saldo Inicial');
+    var antesDoMes = data < mesInicio;
+    // Saldo Inicial sempre conta como "anterior", mesmo se a data dele cair dentro do mês do relatório
+    if (antesDoMes || (isSaldoInicialItem && data <= mesFim)) {
       var valor = item.valorNum || parseValor(item.valor);
-      if (item.tipo.includes('Receita') || item.tipo.includes('Depósito') || item.tipo.includes('Saldo Inicial')) saldoAnterior += valor;
-      else if (item.tipo.includes('Despesa') || item.tipo.includes('Transferência')) saldoAnterior -= valor;
+      if (item.tipo.includes('Receita') || item.tipo.includes('Depósito') || isSaldoInicialItem) {
+        saldoAnterior += valor;
+        if (item.origem === 'Caixa Igreja') saldoCaixaAnterior += valor; else saldoBancoAnterior += valor;
+      } else if (item.tipo.includes('Despesa') || item.tipo.includes('Transferência')) {
+        saldoAnterior -= valor;
+        if (item.origem === 'Caixa Igreja') saldoCaixaAnterior -= valor; else saldoBancoAnterior -= valor;
+      }
     }
   });
 
   var totalEntradas = 0, totalSaidas = 0;
-  var saldoCaixa = 0, saldoBanco = 0;
+  var saldoCaixa = saldoCaixaAnterior, saldoBanco = saldoBancoAnterior;
 
   lancamentosMes.sort(function(a, b) { return parseDataBR(a.data) - parseDataBR(b.data); });
 
@@ -1538,9 +1550,15 @@ function gerarRelatorioMensal() {
         <tbody>
   `;
 
-  if (linhas.length === 0) {
+  if (linhas.length === 0 && saldoAnterior === 0) {
     html += '<tr><td colspan="4" style="text-align:center; color:#64748b;">Nenhum lançamento neste mês</td></tr>';
   } else {
+    html += `
+      <tr style="font-style:italic; color:#94a3b8;">
+        <td colspan="2">Saldo Anterior</td>
+        <td colspan="2" style="text-align:right;">${moeda(saldoAnterior)}</td>
+      </tr>
+    `;
     linhas.forEach(function(row) {
       html += `
         <tr>
@@ -1608,30 +1626,37 @@ function gerarRelatorioPeriodo() {
   var fim = new Date(dataFim + 'T23:59:59');
 
   var lancamentos = getData('lancamentos');
+  // NOVO: Saldo Inicial não entra como lançamento na lista — ele conta
+  // como parte do "Saldo Anterior", não importa a data em que foi registrado
   var lancamentosPeriodo = lancamentos.filter(function(item) {
     var data = parseDataBR(item.data);
     if (!data) return false;
+    if (item.tipo.includes('Saldo Inicial')) return false;
     var dataComparacao = new Date(data.getFullYear(), data.getMonth(), data.getDate());
     return dataComparacao >= inicio && dataComparacao <= fim;
   });
 
-  if (lancamentosPeriodo.length === 0) {
+  var saldoAcumulado = 0;
+  lancamentos.forEach(function(item) {
+    var data = parseDataBR(item.data);
+    if (!data) return;
+    var isSaldoInicialItem = item.tipo.includes('Saldo Inicial');
+    var antesDoPeriodo = data < inicio;
+    if (antesDoPeriodo || (isSaldoInicialItem && data <= fim)) {
+      var valor = item.valorNum || parseValor(item.valor);
+      if (item.tipo.includes('Receita') || item.tipo.includes('Depósito') || isSaldoInicialItem) saldoAcumulado += valor;
+      else if (item.tipo.includes('Despesa') || item.tipo.includes('Transferência')) saldoAcumulado -= valor;
+    }
+  });
+  var saldoAnteriorPeriodo = saldoAcumulado;
+
+  if (lancamentosPeriodo.length === 0 && saldoAnteriorPeriodo === 0) {
     document.getElementById('relatorioOutput').innerHTML = 
       '<p style="text-align:center; color:#64748b;">Nenhum lançamento encontrado no período.</p>';
     return;
   }
 
   lancamentosPeriodo.sort(function(a, b) { return parseDataBR(a.data) - parseDataBR(b.data); });
-
-  var saldoAcumulado = 0;
-  lancamentos.forEach(function(item) {
-    var data = parseDataBR(item.data);
-    if (data && data < inicio) {
-      var valor = item.valorNum || parseValor(item.valor);
-      if (item.tipo.includes('Receita') || item.tipo.includes('Depósito') || item.tipo.includes('Saldo Inicial')) saldoAcumulado += valor;
-      else if (item.tipo.includes('Despesa') || item.tipo.includes('Transferência')) saldoAcumulado -= valor;
-    }
-  });
 
   var linhas = lancamentosPeriodo.map(function(item) {
     var valor = item.valorNum || parseValor(item.valor);
@@ -1680,6 +1705,10 @@ function gerarRelatorioPeriodo() {
           </tr>
         </thead>
         <tbody>
+          <tr style="font-style:italic; color:#94a3b8;">
+            <td colspan="4">Saldo Anterior</td>
+            <td style="text-align:right;">${moeda(saldoAnteriorPeriodo)}</td>
+          </tr>
   `;
 
   linhas.forEach(function(row) {
