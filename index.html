@@ -600,11 +600,23 @@
         <input type="text" id="inputValor" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
       </div>
 
+      <div class="form-group" id="grupoAnexo" style="display:none;">
+        <label>📎 Anexar Comprovante (PDF, imagem)</label>
+        <input type="file" id="inputAnexo" accept=".pdf,.jpg,.jpeg,.png" style="width:100%; color:#e2e8f0; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:8px;">
+        <div id="anexoAtual" style="display:none; margin-top:4px; font-size:0.72rem; color:#a78bfa;"></div>
+      </div>
+
       <button class="btn-salvar" id="btnSalvar" onclick="salvarLancamento()">💾 Salvar Lançamento</button>
     </div>
 
     <div class="glass-card" style="margin-top:12px;">
-      <h3 style="margin-bottom:8px;">📜 Histórico de Lançamentos</h3>
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+        <h3 style="margin:0;">📜 Histórico de Lançamentos</h3>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <input type="month" id="filtroMesHistorico" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#e2e8f0; padding:5px 8px; font-size:0.78rem;">
+          <button onclick="limparFiltroHistorico()" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#94a3b8; border-radius:8px; padding:5px 10px; font-size:0.72rem; cursor:pointer;">Todos</button>
+        </div>
+      </div>
       <div id="historicoContainer"></div>
     </div>
 
@@ -1181,8 +1193,10 @@ function abrirForm(tipo, preservarEdicao) {
   document.getElementById('grupoDestino').style.display = 'block';
   document.getElementById('grupoBanco').style.display = 'block';
   document.getElementById('grupoMembro').style.display = 'none';
-  document.getElementById('selMembro').value = '';
   document.getElementById('grupoPeriodo').style.display = 'none';
+  document.getElementById('grupoAnexo').style.display = 'none';
+  document.getElementById('inputAnexo').value = '';
+  document.getElementById('anexoAtual').style.display = 'none';
 
   // NOVO: data do lançamento, editável (por padrão sugere hoje pra um lançamento novo)
   document.getElementById('grupoDataLancamento').style.display = 'block';
@@ -1217,10 +1231,9 @@ function abrirForm(tipo, preservarEdicao) {
       document.getElementById('formTitulo').textContent = '💸 Lançamento de Despesa';
       atualizarSelectCategorias('despesas');
       document.getElementById('grupoMembro').style.display = 'none';
-      // CORREÇÃO: mesmo caso da Receita — Destino repetia a própria Categoria (Água,
-      // Luz, etc). Fica só a Conta: de onde o dinheiro saiu.
       document.getElementById('grupoDestino').style.display = 'none';
       document.getElementById('grupoBanco').style.display = 'none';
+      document.getElementById('grupoAnexo').style.display = 'block';
       document.getElementById('selOrigem').parentElement.querySelector('label').textContent = 'CONTA (de onde o dinheiro saiu)';
       atualizarSelectConta();
       document.getElementById('selDestino').innerHTML = '<option>Selecionar Destino</option>';
@@ -1350,57 +1363,78 @@ function salvarLancamento() {
     descricao = categoria;
   }
 
-  var lancamento = {
-    tipo: tipo,
-    categoria: categoria,
-    origem: origem,
-    destino: destino,
-    banco: banco,
-    membro: membro,
-    descricao: isSaldoInicial ? (descricao || 'Saldo Inicial') : descricao,
-    valor: valorStr,
-    valorNum: valor,
-    periodo: periodo,
-    // NOVO: usa a data escolhida no campo "Data do Lançamento" (permite lançar algo
-    // que aconteceu dias atrás). Saldo Inicial continua usando o 1º dia do período.
-    // Na edição, mantém a mesma hora do lançamento original; num lançamento novo, usa a hora atual.
-    data: (function() {
-      if (isSaldoInicial) {
-        return '01/' + periodo.split('-')[1] + '/' + periodo.split('-')[0] + ', 00:00:00';
-      }
-      var dataEscolhida = document.getElementById('inputDataLancamento').value; // "AAAA-MM-DD"
-      if (dataEscolhida) {
-        var partesData = dataEscolhida.split('-');
-        var horaUsar = lancamentoAnterior ? lancamentoAnterior.data.split(',')[1].trim() : new Date().toLocaleTimeString('pt-BR');
-        return partesData[2] + '/' + partesData[1] + '/' + partesData[0] + ', ' + horaUsar;
-      }
-      return lancamentoAnterior ? lancamentoAnterior.data : new Date().toLocaleString('pt-BR');
-    })()
-  };
+  // Salvar lançamento com ou sem anexo
+  function finalizarSalvamento(anexoData, anexoNome, anexoTipo) {
+    var lancamento = {
+      tipo: tipo,
+      categoria: categoria,
+      origem: origem,
+      destino: destino,
+      banco: banco,
+      membro: membro,
+      descricao: isSaldoInicial ? (descricao || 'Saldo Inicial') : descricao,
+      valor: valorStr,
+      valorNum: valor,
+      periodo: periodo,
+      data: (function() {
+        if (isSaldoInicial) {
+          return '01/' + periodo.split('-')[1] + '/' + periodo.split('-')[0] + ', 00:00:00';
+        }
+        var dataEscolhida = document.getElementById('inputDataLancamento').value;
+        if (dataEscolhida) {
+          var partesData = dataEscolhida.split('-');
+          var horaUsar = lancamentoAnterior ? lancamentoAnterior.data.split(',')[1].trim() : new Date().toLocaleTimeString('pt-BR');
+          return partesData[2] + '/' + partesData[1] + '/' + partesData[0] + ', ' + horaUsar;
+        }
+        return lancamentoAnterior ? lancamentoAnterior.data : new Date().toLocaleString('pt-BR');
+      })(),
+      anexo: anexoData || (lancamentoAnterior ? lancamentoAnterior.anexo : null),
+      anexoNome: anexoNome || (lancamentoAnterior ? lancamentoAnterior.anexoNome : null),
+      anexoTipo: anexoTipo || (lancamentoAnterior ? lancamentoAnterior.anexoTipo : null)
+    };
 
-  var lancamentos = getData('lancamentos');
+    var lancamentos = getData('lancamentos');
+    if (indiceEdicaoGlobal !== -1 && indiceEdicaoGlobal < lancamentos.length) {
+      lancamentos[indiceEdicaoGlobal] = lancamento;
+      alert('✅ Lançamento atualizado!');
+      indiceEdicaoGlobal = -1;
+    } else {
+      lancamentos.push(lancamento);
+      alert('✅ Lançamento salvo!');
+    }
 
-  // Verifica se é edição usando a variável global
-  if (indiceEdicaoGlobal !== -1 && indiceEdicaoGlobal < lancamentos.length) {
-    lancamentos[indiceEdicaoGlobal] = lancamento;
-    alert('✅ Lançamento atualizado!');
-    indiceEdicaoGlobal = -1; // Reset após editar
-  } else {
-    lancamentos.push(lancamento);
-    alert('✅ Lançamento salvo!');
+    setData('lancamentos', lancamentos);
+    carregarHistorico();
+    atualizarDashboard();
+
+    document.getElementById('inputDescricao').value = '';
+    document.getElementById('inputValor').value = '';
+    document.getElementById('btnSalvar').textContent = '💾 Salvar Lançamento';
+    document.getElementById('inputAnexo').value = '';
+    document.getElementById('anexoAtual').style.display = 'none';
+    if (document.getElementById('grupoDataLancamento').style.display !== 'none') {
+      document.getElementById('inputDataLancamento').valueAsDate = new Date();
+    }
   }
 
-  setData('lancamentos', lancamentos);
-  carregarHistorico();
-  atualizarDashboard();
-
-  // Reset
-  document.getElementById('inputDescricao').value = '';
-  document.getElementById('inputValor').value = '';
-  document.getElementById('btnSalvar').textContent = '💾 Salvar Lançamento';
-  // Data volta para "hoje" (só quando o campo está visível, ou seja, fora do Saldo Inicial)
-  if (document.getElementById('grupoDataLancamento').style.display !== 'none') {
-    document.getElementById('inputDataLancamento').valueAsDate = new Date();
+  // Se tem arquivo novo selecionado, converte para base64 antes de salvar
+  var arquivoInput = document.getElementById('inputAnexo');
+  if (arquivoInput.files && arquivoInput.files[0]) {
+    var arquivo = arquivoInput.files[0];
+    if (arquivo.size > 2 * 1024 * 1024) {
+      alert('⚠️ Arquivo muito grande. Use arquivos menores que 2MB.');
+      return;
+    }
+    var leitor = new FileReader();
+    leitor.onload = function(e) {
+      lancamento.anexo = e.target.result;
+      lancamento.anexoNome = arquivo.name;
+      lancamento.anexoTipo = arquivo.type;
+      finalizarSave();
+    };
+    leitor.readAsDataURL(arquivo);
+  } else {
+    finalizarSave();
   }
 }
 
@@ -1408,17 +1442,46 @@ function salvarLancamento() {
 // TESOURARIA - HISTÓRICO
 // ============================================================
 
+function limparFiltroHistorico() {
+  document.getElementById('filtroMesHistorico').value = '';
+  carregarHistorico();
+}
+
 function carregarHistorico() {
   var container = document.getElementById('historicoContainer');
   var lancamentos = getData('lancamentos');
+  var filtroMes = document.getElementById('filtroMesHistorico').value; // "AAAA-MM" ou vazio
 
-  if (lancamentos.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:#64748b; padding:10px;">Nenhum lançamento registrado.</p>';
+  // Filtra por mês se selecionado
+  var lista = lancamentos.map(function(item, index) {
+    return { item: item, index: index };
+  });
+
+  if (filtroMes) {
+    var partes = filtroMes.split('-');
+    var anoF = parseInt(partes[0]), mesF = parseInt(partes[1]);
+    lista = lista.filter(function(obj) {
+      var d = parseDataBR(obj.item.data);
+      if (!d) return false;
+      return d.getFullYear() === anoF && (d.getMonth() + 1) === mesF;
+    });
+  }
+
+  // Ordena do mais recente para o mais antigo
+  lista.sort(function(a, b) {
+    var da = parseDataBR(a.item.data), db = parseDataBR(b.item.data);
+    return (db || 0) - (da || 0);
+  });
+
+  if (lista.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color:#64748b; padding:10px;">' + 
+      (filtroMes ? 'Nenhum lançamento neste mês.' : 'Nenhum lançamento registrado.') + '</p>';
     return;
   }
 
   var html = '';
-  lancamentos.forEach(function(item, index) {
+  lista.forEach(function(obj) {
+    var item = obj.item, index = obj.index;
     var isSaldoInicial = item.tipo.includes('Saldo Inicial');
     var tipoClass = item.tipo.includes('Receita') ? '#10b981' : 
                     item.tipo.includes('Despesa') ? '#ef4444' :
@@ -1439,6 +1502,11 @@ function carregarHistorico() {
     }
     if (isSaldoInicial && item.periodo) detalhes.push('📅 Referente a ' + item.periodo);
 
+    var btnAnexo = '';
+    if (item.anexo) {
+      btnAnexo = `<button class="btn-edit" onclick="verAnexo(${index})" style="background:rgba(167,139,250,0.15); color:#a78bfa;">📎 ${item.anexoNome || 'Ver anexo'}</button>`;
+    }
+
     html += `
       <div class="historico-item">
         <div class="tipo" style="color:${tipoClass};">${item.tipo}</div>
@@ -1447,6 +1515,7 @@ function carregarHistorico() {
         <div class="data-item">${item.data}</div>
         <div class="actions">
           ${isSaldoInicial ? '' : `<button class="btn-edit" onclick="editarLancamento(${index})">✏️ Editar</button>`}
+          ${btnAnexo}
           <button class="btn-del" onclick="excluirLancamento(${index})">🗑️ Excluir</button>
         </div>
       </div>
@@ -1454,6 +1523,19 @@ function carregarHistorico() {
   });
 
   container.innerHTML = html;
+}
+
+function verAnexo(index) {
+  var lancamentos = getData('lancamentos');
+  var item = lancamentos[index];
+  if (!item || !item.anexo) return;
+  // Abre o arquivo em nova aba para visualizar/baixar
+  var win = window.open();
+  if (item.anexoTipo && item.anexoTipo.includes('pdf')) {
+    win.document.write('<iframe src="' + item.anexo + '" style="width:100%;height:100vh;border:none;"></iframe>');
+  } else {
+    win.document.write('<img src="' + item.anexo + '" style="max-width:100%;">');
+  }
 }
 
 function excluirLancamento(index) {
@@ -1502,6 +1584,13 @@ function editarLancamento(index) {
   document.getElementById('inputDescricao').value = item.descricao || '';
   document.getElementById('inputValor').value = item.valor || '';
   document.getElementById('btnSalvar').textContent = '🔄 Atualizar Lançamento';
+
+  // Mostrar nome do anexo existente (se for despesa com comprovante)
+  if (item.anexo && item.tipo.includes('Despesa')) {
+    var divAnexo = document.getElementById('anexoAtual');
+    divAnexo.textContent = '📎 Anexo atual: ' + (item.anexoNome || 'comprovante');
+    divAnexo.style.display = 'block';
+  }
 
   // NOVO: preenche a data do lançamento já salva, permitindo corrigi-la na edição
   var dataItem = parseDataBR(item.data);
@@ -2891,6 +2980,17 @@ function renderRelatoriosSec() {
 window.onload = function() {
   document.getElementById('logoHeader').src = LOGO_IGREJA;
   document.getElementById('logoLogin').src = LOGO_IGREJA;
+
+  // Listener do filtro de mês do histórico
+  document.getElementById('filtroMesHistorico').addEventListener('change', function() {
+    carregarHistorico();
+  });
+
+  // Define o mês atual como padrão no filtro
+  var hoje = new Date();
+  var mesAtual = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+  document.getElementById('filtroMesHistorico').value = mesAtual;
+
   var iniciar = function() {
     atualizarDashboard();
     carregarMembrosSelect();
